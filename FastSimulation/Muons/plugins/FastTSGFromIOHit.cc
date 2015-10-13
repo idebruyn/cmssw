@@ -10,11 +10,11 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
-#include "DataFormats/TrackerRecHit2D/interface/SiTrackerGSMatchedRecHit2DCollection.h"
+#include "DataFormats/TrackerRecHit2D/interface/FastTrackerRecHit.h"
 #include "DataFormats/MuonSeed/interface/L3MuonTrajectorySeed.h"
 #include "RecoTracker/TkTrackingRegions/interface/RectangularEtaPhiTrackingRegion.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
-
+#include "FastSimulation/Tracking/interface/FastTrackingHelper.h"
 
 FastTSGFromIOHit::FastTSGFromIOHit(const edm::ParameterSet & iConfig,edm::ConsumesCollector& iC) : theConfig (iConfig)
 {
@@ -36,7 +36,7 @@ FastTSGFromIOHit::~FastTSGFromIOHit()
 }
 
 void FastTSGFromIOHit::trackerSeeds(const TrackCand& staMuon, const TrackingRegion& region, std::vector<TrajectorySeed> & result) {
-  
+
   // Retrieve the Monte Carlo truth (SimTracks)
   edm::Handle<edm::SimTrackContainer> theSimTracks;
   getEvent()->getByLabel(theSimTrackCollectionLabel,theSimTracks);
@@ -57,7 +57,8 @@ void FastTSGFromIOHit::trackerSeeds(const TrackCand& staMuon, const TrackingRegi
   // Cut on muons with low momenta
   if ( muRef->pt() < thePtCut 
        || muRef->innerMomentum().Rho() < thePtCut 
-       || muRef->innerMomentum().R() < 2.5 ) return;
+       || muRef->innerMomentum().R() < 2.5 ){
+  }return;
   
   // Copy the collection of seeds (ahem, this is time consuming!)
   std::vector<TrajectorySeed> tkSeeds;
@@ -69,15 +70,15 @@ void FastTSGFromIOHit::trackerSeeds(const TrackCand& staMuon, const TrackingRegi
     for (unsigned seednr = 0; seednr < nSeeds; ++seednr) {
       
       // The seed
-      const BasicTrajectorySeed* aSeed = &((*aSeedCollection)[seednr]);
+      const TrajectorySeed* aSeed = &((*aSeedCollection)[seednr]);
       
       // Find the first hit of the Seed
       TrajectorySeed::range theSeedingRecHitRange = aSeed->recHits();
-      const SiTrackerGSMatchedRecHit2D * theFirstSeedingRecHit = 
-	(const SiTrackerGSMatchedRecHit2D*) (&(*(theSeedingRecHitRange.first)));
+      const FastTrackerRecHit * theFirstSeedingRecHit = 
+	(const FastTrackerRecHit*) (&(*(theSeedingRecHitRange.first)));
       
       // The SimTrack id associated to that recHit
-      int simTrackId = theFirstSeedingRecHit->simtrackId();
+      int simTrackId = theFirstSeedingRecHit->simTrackId(0);
       
       // Track already associated to a seed
       std::set<unsigned>::iterator tkId = tkIds.find(simTrackId);
@@ -100,13 +101,12 @@ void FastTSGFromIOHit::trackerSeeds(const TrackCand& staMuon, const TrackingRegi
   for (;is!=isMax;++is){
     result.push_back( L3MuonTrajectorySeed(tkSeeds[is], muRef));
   } // End of tk seed loop
-  
 }
 
 bool
 FastTSGFromIOHit::clean(reco::TrackRef muRef,
 			const RectangularEtaPhiTrackingRegion& region,
-			const BasicTrajectorySeed* aSeed,
+			const TrajectorySeed* aSeed,
 			const SimTrack& theSimTrack) 
 {
   //  return true; 

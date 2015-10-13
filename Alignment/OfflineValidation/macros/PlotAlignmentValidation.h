@@ -72,6 +72,7 @@ TkOfflineVariables::TkOfflineVariables(std::string fileName, std::string baseDir
 class PlotAlignmentValidation {
 public:
   //PlotAlignmentValidation(TString *tmp);
+  PlotAlignmentValidation() {}
   PlotAlignmentValidation(const char *inputFile,std::string fileName="", int lineColor=1, int lineStyle=1);
   ~PlotAlignmentValidation();
   void loadFileList(const char *inputFile, std::string fileName="", int lineColor=2, int lineStyle=1);
@@ -86,10 +87,29 @@ public:
   void setOutputDir( std::string dir );
   void setTreeBaseDir( std::string dir = "TrackerOfflineValidationStandalone");
   
-  THStack* addHists(const char *selection, const TString &residType = "xPrime", TLegend **myLegend = 0, bool printModuleIds = false);//add hists fulfilling 'selection' on TTree; residType: xPrime,yPrime,xPrimeNorm,yPrimeNorm,x,y,xNorm; if (printModuleIds): cout DetIds
+  THStack* addHists(const TString& selection, const TString &residType = "xPrime", TLegend **myLegend = 0, bool printModuleIds = false);//add hists fulfilling 'selection' on TTree; residType: xPrime,yPrime,xPrimeNorm,yPrimeNorm,x,y,xNorm; if (printModuleIds): cout DetIds
   
+  // These are helpers for DMR plotting
+
+  struct DMRPlotInfo {
+    std::string variable;
+    int nbins;
+    double min, max;
+    int minHits;
+    bool plotPlain, plotSplits, plotLayers;
+    int subDetId, nLayers;
+    THStack* hstack;
+    TLegend* legend;
+    TkOfflineVariables* vars;
+    float maxY;
+    TH1F* h;
+    TH1F* h1;
+    TH1F* h2;
+    bool firsthisto;
+  };
+
 private : 
-  TList getTreeList();
+  TList* getTreeList();
   std::string treeBaseDir;
 
   bool useFit_;
@@ -115,25 +135,6 @@ private :
   bool moreThanOneSource;
   std::string fileNames[10];
   int fileCounter;	
-
-  // These are helpers for DMR plotting
-
-  struct DMRPlotInfo {
-    std::string variable;
-    int nbins;
-    double min, max;
-    int minHits;
-    bool plotPlain, plotSplits, plotLayers;
-    int subDetId, nLayers;
-    THStack* hstack;
-    TLegend* legend;
-    TkOfflineVariables* vars;
-    float maxY;
-    TH1F* h;
-    TH1F* h1;
-    TH1F* h2;
-    bool firsthisto;
-  };
 
   std::string getSelectionForDMRPlot(int minHits, int subDetId, int direction = 0, int layer = 0);
   std::string getVariableForDMRPlot(const std::string& histoname, const std::string& variable,

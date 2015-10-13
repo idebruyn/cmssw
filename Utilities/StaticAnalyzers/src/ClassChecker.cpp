@@ -254,6 +254,7 @@ void WalkAST::CheckCXXOperatorCallExpr(const clang::CXXOperatorCallExpr *OCE,con
 
 void WalkAST::CheckExplicitCastExpr(const clang::ExplicitCastExpr * CE,const clang::MemberExpr *ME){
 
+     if (! ( clang::CStyleCastExpr::classof(CE) || clang::CXXConstCastExpr::classof(CE) )) return;
      const clang::Expr *E = CE->getSubExpr();
      clang::ASTContext &Ctx = AC->getASTContext();
      clang::QualType OrigTy = Ctx.getCanonicalType(E->getType());
@@ -671,7 +672,7 @@ void ClassChecker::checkASTDecl(const clang::CXXRecordDecl *RD, clang::ento::Ana
                     WalkAST walker(this,BR, mgr.getAnalysisDeclContext(RD), (*(RD->ctor_begin()))->getMostRecentDecl() ) ;
                     std::string buf;
                     llvm::raw_string_ostream os(buf);
-                    os << "Mutable member '" <<t.getAsString()<<" "<<*D << "' in data class '"<<support::getQualifiedName(*RD)<<"', might be thread-unsafe when accessing via a const handle.";
+                    os << "Mutable member '" <<t.getCanonicalType().getAsString()<<" "<<*D << "' in data class '"<<support::getQualifiedName(*RD)<<"', might be thread-unsafe when accessing via a const handle.";
                     BR.EmitBasicReport(D, this, "Mutable member in data class",
                         "Data Class Const Correctness", os.str(), DLoc);
                     std::string pname = support::getQualifiedName(*(RD));

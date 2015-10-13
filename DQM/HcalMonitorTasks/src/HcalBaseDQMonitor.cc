@@ -1,7 +1,7 @@
 #include <DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h>
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/HcalRecNumberingRecord.h"
 #include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
 #include "CondFormats/HcalObjects/interface/HcalElectronicsMap.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
@@ -235,7 +235,7 @@ bool HcalBaseDQMonitor::IsAllowedCalibType()
 void HcalBaseDQMonitor::getLogicalMap(const edm::EventSetup& c) {
   if (needLogicalMap_ && logicalMap_==0) {
     edm::ESHandle<HcalTopology> pT;
-    c.get<IdealGeometryRecord>().get(pT);   
+    c.get<HcalRecNumberingRecord>().get(pT);   
     HcalLogicalMapGenerator gen;
     logicalMap_=new HcalLogicalMap(gen.createMap(&(*pT)));
   }
@@ -307,9 +307,13 @@ void HcalBaseDQMonitor::CheckSubdetectorStatus(const edm::Handle<FEDRawDataColle
 
   std::vector<int> fedUnpackList;
   for (int i=FEDNumbering::MINHCALFEDID; 
-       i<=FEDNumbering::MAXHCALFEDID; 
+       i<=FEDNumbering::MAXHCALuTCAFEDID; 
        i++) 
-    fedUnpackList.push_back(i);
+  {
+	if (i>FEDNumbering::MAXHCALFEDID && i<FEDNumbering::MINHCALuTCAFEDID)
+		continue;
+	fedUnpackList.push_back(i);
+  }
 
   if (debug_>1) std::cout <<"<HcalMonitorModule::CheckSubdetectorStatus>  Checking subdetector "<<subdet<<std::endl;
   for (std::vector<int>::const_iterator i=fedUnpackList.begin();
@@ -325,7 +329,8 @@ void HcalBaseDQMonitor::CheckSubdetectorStatus(const edm::Handle<FEDRawDataColle
       if (!dccHeader) return;
       int dccid=dccHeader->getSourceId();
       // check for HF
-      if (subdet == HcalForward && dccid>717 && dccid<724)
+      if (subdet == HcalForward && ((dccid>=1118 && dccid<=1122) || 
+				  (dccid>=718 && dccid<=723)))
 	{
 	  HFpresent_=true;
 	  return;
@@ -395,8 +400,12 @@ void HcalBaseDQMonitor::CheckCalibType(const edm::Handle<FEDRawDataCollection> &
   int calibType=-1;
   int numEmptyFEDs = 0 ;
   std::vector<int> calibTypeCounter(8,0) ;
-  for( int i = FEDNumbering::MINHCALFEDID; i <= FEDNumbering::MAXHCALFEDID; i++) 
+  for( int i = FEDNumbering::MINHCALFEDID; 
+		  i <= FEDNumbering::MAXHCALuTCAFEDID; i++) 
     {
+		if (i>FEDNumbering::MAXHCALFEDID && i<FEDNumbering::MINHCALuTCAFEDID)
+			continue;
+
       const FEDRawData& fedData = rawraw->FEDData(i) ;
       
       if ( fedData.size() < 24 ) numEmptyFEDs++ ;
@@ -413,7 +422,8 @@ void HcalBaseDQMonitor::CheckCalibType(const edm::Handle<FEDRawDataCollection> &
     } // for (int i = FEDNumbering::MINHCALFEDID; ...)
 
   int maxCount = 0;
-  int numberOfFEDIds = FEDNumbering::MAXHCALFEDID  - FEDNumbering::MINHCALFEDID + 1 ;
+  int numberOfFEDIds = (FEDNumbering::MAXHCALFEDID-FEDNumbering::MINHCALFEDID+1) +
+	  (FEDNumbering::MAXHCALuTCAFEDID-FEDNumbering::MINHCALuTCAFEDID+1);
   for (unsigned int i=0; i<calibTypeCounter.size(); i++) {
     if ( calibTypeCounter.at(i) > maxCount )
       { calibType = i ; maxCount = calibTypeCounter.at(i) ; }

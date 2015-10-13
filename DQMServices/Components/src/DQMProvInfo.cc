@@ -7,7 +7,6 @@
 
 #include "DQMProvInfo.h"
 #include <TSystem.h>
-#include "DataFormats/Provenance/interface/ProcessHistory.h"
 #include "DataFormats/Scalers/interface/DcsStatus.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GtFdlWord.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
@@ -81,18 +80,18 @@ DQMProvInfo::beginRun(const edm::Run& r, const edm::EventSetup &c ) {
   reportSummaryMap_->setBinLabel(24,"CASTOR",2);
   reportSummaryMap_->setBinLabel(25,"ZDC",2);
   reportSummaryMap_->setBinLabel(26,"PhysDecl",2);
-  reportSummaryMap_->setBinLabel(27,"8 TeV",2);
+  reportSummaryMap_->setBinLabel(27,"13 TeV",2);
   reportSummaryMap_->setBinLabel(28,"Stable B",2);
   reportSummaryMap_->setBinLabel(29,"Valid",2);
   reportSummaryMap_->setAxisTitle("Luminosity Section");
-  reportSummaryMap_->getTH2F()->SetBit(TH1::kCanRebin);
+  reportSummaryMap_->getTH2F()->SetCanExtend(TH1::kAllAxes);
 
   dbe_->cd();  
   dbe_->setCurrentFolder(subsystemname_ +"/LhcInfo/");
   hBeamMode_=dbe_->book1D("beamMode","beamMode",XBINS,1.,XBINS+1);
   hBeamMode_->getTH1F()->GetYaxis()->Set(21,0.5,21.5);
   hBeamMode_->getTH1F()->SetMaximum(21.5);
-  hBeamMode_->getTH1F()->SetBit(TH1::kCanRebin);
+  hBeamMode_->getTH1F()->SetCanExtend(TH1::kAllAxes);
 
   hBeamMode_->setAxisTitle("Luminosity Section",1);
   hBeamMode_->setBinLabel(1,"no mode",2);
@@ -121,20 +120,20 @@ DQMProvInfo::beginRun(const edm::Run& r, const edm::EventSetup &c ) {
 
   hLhcFill_=dbe_->book1D("lhcFill","LHC Fill Number",XBINS,1.,XBINS+1);
   hLhcFill_->setAxisTitle("Luminosity Section",1);
-  hLhcFill_->getTH1F()->SetBit(TH1::kCanRebin);
+  hLhcFill_->getTH1F()->SetCanExtend(TH1::kAllAxes);
   
   hMomentum_=dbe_->book1D("momentum","Beam Energy [GeV]",XBINS,1.,XBINS+1);
   hMomentum_->setAxisTitle("Luminosity Section",1);
-  hMomentum_->getTH1F()->SetBit(TH1::kCanRebin);
+  hMomentum_->getTH1F()->SetCanExtend(TH1::kAllAxes);
 
   hIntensity1_=dbe_->book1D("intensity1","Intensity Beam 1",XBINS,1.,XBINS+1);
   hIntensity1_->setAxisTitle("Luminosity Section",1);
   hIntensity1_->setAxisTitle("N [E10]",2);
-  hIntensity1_->getTH1F()->SetBit(TH1::kCanRebin);
+  hIntensity1_->getTH1F()->SetCanExtend(TH1::kAllAxes);
   hIntensity2_=dbe_->book1D("intensity2","Intensity Beam 2",XBINS,1.,XBINS+1);
   hIntensity2_->setAxisTitle("Luminosity Section",1);
   hIntensity2_->setAxisTitle("N [E10]",2);
-  hIntensity2_->getTH1F()->SetBit(TH1::kCanRebin);
+  hIntensity2_->getTH1F()->SetCanExtend(TH1::kAllAxes);
 
   dbe_->cd();  
   dbe_->setCurrentFolder(subsystemname_ +"/ProvInfo/");
@@ -150,11 +149,11 @@ DQMProvInfo::beginRun(const edm::Run& r, const edm::EventSetup &c ) {
 void DQMProvInfo::analyze(const edm::Event& e, const edm::EventSetup& c){
   if(!gotProcessParameterSet_){
     gotProcessParameterSet_=true;
-    edm::ParameterSet ps;
-    //fetch the real process name
-    nameProcess_ = e.processHistory()[e.processHistory().size()-1].processName();
-    e.getProcessParameterSet(nameProcess_,ps);
-    globalTag_ = ps.getParameterSet("PoolDBESSource@GlobalTag").getParameter<std::string>("globaltag");
+
+    globalTag_ =
+      edm::getProcessParameterSetContainingModule(moduleDescription()).
+      getParameterSet("PoolDBESSource@GlobalTag").
+      getParameter<std::string>("globaltag");
     versGlobaltag_->Fill(globalTag_);
   }
   

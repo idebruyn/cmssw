@@ -50,7 +50,7 @@ FWTEveViewer::FWTEveViewer(const char* n, const char* t) :
 
 FWTEveViewer::~FWTEveViewer()
 {
-   m_thr->detach();
+    if (m_thr) m_thr->detach();
 
    {
       std::unique_lock<std::mutex> lk(m_moo);
@@ -152,15 +152,15 @@ FWTEveViewer::CaptureAndSaveImage(const TString& file, int height)
    }
 
    int ww, hh;
-   if (fbo->fIsRescaled)
+   if (fbo->GetIsRescaled())
    {
-      ww = TMath::Nint(fbo->fW * fbo->fWScale);
-      hh = TMath::Nint(fbo->fH * fbo->fHScale);
+      ww = TMath::Nint(fbo->GetW() * fbo->GetWScale());
+      hh = TMath::Nint(fbo->GetH() * fbo->GetHScale());
    }
    else
    {
-      ww = fbo->fW;
-      hh = fbo->fH;
+      ww = fbo->GetW();
+      hh = fbo->GetH();
    }
 
    fbo->SetAsReadBuffer();

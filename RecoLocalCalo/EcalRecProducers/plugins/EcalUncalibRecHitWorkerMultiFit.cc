@@ -42,7 +42,10 @@ EcalUncalibRecHitWorkerMultiFit::EcalUncalibRecHitWorkerMultiFit(const edm::Para
   useLumiInfoRunHeader_ = ps.getParameter<bool>("useLumiInfoRunHeader");
   
   if (useLumiInfoRunHeader_) {
-    bunchSpacing_ = c.consumes<int>(edm::InputTag("addPileupInfo","bunchSpacing"));
+    bunchSpacing_ = c.consumes<unsigned int>(edm::InputTag("bunchSpacingProducer"));
+    bunchSpacingManual_ = 0;
+  } else {
+    bunchSpacingManual_ = ps.getParameter<int>("bunchSpacing");
   }
 
   doPrefitEB_ = ps.getParameter<bool>("doPrefitEB");
@@ -81,7 +84,6 @@ EcalUncalibRecHitWorkerMultiFit::EcalUncalibRecHitWorkerMultiFit(const edm::Para
   // spike threshold
   ebSpikeThresh_ = ps.getParameter<double>("ebSpikeThreshold");
 
-  // leading edge parameters
   ebPulseShape_ = ps.getParameter<std::vector<double> >("ebPulseShape");
   eePulseShape_ = ps.getParameter<std::vector<double> >("eePulseShape");
 
@@ -117,8 +119,6 @@ EcalUncalibRecHitWorkerMultiFit::set(const edm::EventSetup& es)
 	es.get<EcalSampleMaskRcd>().get(sampleMaskHand_);
 
         // for the ratio method
-
-        // for the leading edge method
         es.get<EcalTimeCalibConstantsRcd>().get(itime);
         es.get<EcalTimeOffsetConstantRcd>().get(offtime);
 
@@ -130,32 +130,19 @@ void
 EcalUncalibRecHitWorkerMultiFit::set(const edm::Event& evt)
 {
 
+  unsigned int bunchspacing = 450;
+
   if (useLumiInfoRunHeader_) {
 
-    int bunchspacing = 450;
-    
-    if (evt.isRealData()) {
-      edm::RunNumber_t run = evt.run();
-      if (run == 178003 ||
-          run == 178004 ||
-          run == 209089 ||
-          run == 209106 ||
-          run == 209109 ||
-          run == 209146 ||
-          run == 209148 ||
-          run == 209151) {
-        bunchspacing = 25;
-      }
-      else {
-        bunchspacing = 50;
-      }
-    }
-    else {
-      edm::Handle<int> bunchSpacingH;
+      edm::Handle<unsigned int> bunchSpacingH;
       evt.getByToken(bunchSpacing_,bunchSpacingH);
       bunchspacing = *bunchSpacingH;
-    }
-    
+  }
+  else {
+    bunchspacing = bunchSpacingManual_;
+  }
+
+  if (useLumiInfoRunHeader_ || bunchSpacingManual_ > 0){
     if (bunchspacing == 25) {
       activeBX.resize(10);
       activeBX << -5,-4,-3,-2,-1,0,1,2,3,4;
@@ -324,45 +311,33 @@ EcalUncalibRecHitWorkerMultiFit::run( const edm::Event & evt,
         // === amplitude computation ===
         int leadingSample = ((EcalDataFrame)(*itdg)).lastUnsaturatedSample();
 
-        if ( leadingSample >= 0 ) { // saturation
-                if ( leadingSample != 4 ) {
-                        // all samples different from the fifth are not reliable for the amplitude estimation
-                        // put by default the energy at the saturation threshold and flag as saturated
-                        float sratio = 1;
-                        if ( detid.subdetId()==EcalBarrel) {
-                                sratio = ebPulseShape_[5] / ebPulseShape_[4];
-                        } else {
-                                sratio = eePulseShape_[5] / eePulseShape_[4];
-                        }
-			uncalibRecHit = EcalUncalibratedRecHit( (*itdg).id(), 4095*12*sratio, 0, 0, 0);
-                        uncalibRecHit.setFlagBit( EcalUncalibratedRecHit::kSaturated );
-                } else {
-                        // float clockToNsConstant = 25.;
-                        // reconstruct the rechit
-                        if (detid.subdetId()==EcalEndcap) {
-                                leadingEdgeMethod_endcap_.setPulseShape( eePulseShape_ );
-                                // float mult = (float)eePulseShape_.size() / (float)(*itdg).size();
-                                // bin (or some analogous mapping) will be used instead of the leadingSample
-                                //int bin  = (int)(( (mult * leadingSample + mult/2) * clockToNsConstant + itimeconst ) / clockToNsConstant);
-                                // bin is not uset for the moment
-                                leadingEdgeMethod_endcap_.setLeadingEdgeSample( leadingSample );
-                                uncalibRecHit = leadingEdgeMethod_endcap_.makeRecHit(*itdg, pedVec, gainRatios, 0, 0);
-                                uncalibRecHit.setFlagBit( EcalUncalibratedRecHit::kLeadingEdgeRecovered );
-                                leadingEdgeMethod_endcap_.setLeadingEdgeSample( -1 );
-                        } else {
-                                leadingEdgeMethod_barrel_.setPulseShape( ebPulseShape_ );
-                                // float mult = (float)ebPulseShape_.size() / (float)(*itdg).size();
-                                // bin (or some analogous mapping) will be used instead of the leadingSample
-                                //int bin  = (int)(( (mult * leadingSample + mult/2) * clockToNsConstant + itimeconst ) / clockToNsConstant);
-                                // bin is not uset for the moment
-                                leadingEdgeMethod_barrel_.setLeadingEdgeSample( leadingSample );
-                                uncalibRecHit = leadingEdgeMethod_barrel_.makeRecHit(*itdg, pedVec, gainRatios, 0, 0);
-                                uncalibRecHit.setFlagBit( EcalUncalibratedRecHit::kLeadingEdgeRecovered );
-                                leadingEdgeMethod_barrel_.setLeadingEdgeSample( -1 );
-                        }
-                }
-		// do not propagate the default chi2 = -1 value to the calib rechit (mapped to 64), set it to 0 when saturation
-                uncalibRecHit.setChi2(0);
+        if ( leadingSample == 4 ) { // saturation on the expected max sample
+	       uncalibRecHit = EcalUncalibratedRecHit( (*itdg).id(), 4095*12, 0, 0, 0);
+               uncalibRecHit.setFlagBit( EcalUncalibratedRecHit::kSaturated );
+	       // do not propagate the default chi2 = -1 value to the calib rechit (mapped to 64), set it to 0 when saturation
+               uncalibRecHit.setChi2(0);
+        } else if ( leadingSample >= 0 ) { // saturation on other samples: cannot extrapolate from the fourth one
+               double pedestal = 0.;
+               double gainratio = 1.;
+               int gainId = ((EcalDataFrame)(*itdg)).sample(5).gainId();
+
+               if (gainId==0 || gainId==3) {
+                 pedestal = aped->mean_x1;
+                 gainratio = aGain->gain6Over1()*aGain->gain12Over6();
+               }
+               else if (gainId==1) {
+                 pedestal = aped->mean_x12;
+                 gainratio = 1.;
+               }
+               else if (gainId==2) {
+                 pedestal = aped->mean_x6;
+                 gainratio = aGain->gain12Over6();
+               }
+               double amplitude = ((double)(((EcalDataFrame)(*itdg)).sample(5).adc()) - pedestal) * gainratio;
+               uncalibRecHit = EcalUncalibratedRecHit( (*itdg).id(), amplitude, 0, 0, 0);
+               uncalibRecHit.setFlagBit( EcalUncalibratedRecHit::kSaturated );
+               // do not propagate the default chi2 = -1 value to the calib rechit (mapped to 64), set it to 0 when saturation
+               uncalibRecHit.setChi2(0);
         } else {
                 // multifit
                 bool barrel = detid.subdetId()==EcalBarrel;
@@ -623,6 +598,7 @@ EcalUncalibRecHitWorkerMultiFit::getAlgoDescription() {
  psd.addNode(edm::ParameterDescription<std::vector<int>>("activeBXs", {-5,-4,-3,-2,-1,0,1,2,3,4}, true) and
 	      edm::ParameterDescription<bool>("ampErrorCalculation", true, true) and
 	      edm::ParameterDescription<bool>("useLumiInfoRunHeader", true, true) and
+	      edm::ParameterDescription<int>("bunchSpacing", 0, true) and
 	      edm::ParameterDescription<bool>("doPrefitEB", false, true) and
 	      edm::ParameterDescription<bool>("doPrefitEE", false, true) and
 	      edm::ParameterDescription<double>("prefitMaxChiSqEB", 25., true) and

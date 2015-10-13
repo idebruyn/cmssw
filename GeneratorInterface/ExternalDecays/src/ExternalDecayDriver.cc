@@ -33,8 +33,8 @@ ExternalDecayDriver::ExternalDecayDriver( const ParameterSet& pset )
   
   for (unsigned int ip=0; ip<extGenNames.size(); ++ip ){
     std::string curSet = extGenNames[ip];
-    if ( curSet == "EvtGen" || curSet == "EvtGenLHC91"){
-      fEvtGenInterface = (EvtGenInterfaceBase*)(EvtGenFactory::get()->create("EvtGenLHC91", pset.getUntrackedParameter< ParameterSet >(curSet)));
+    if ( curSet == "EvtGen"){
+      fEvtGenInterface = (EvtGenInterfaceBase*)(EvtGenFactory::get()->create("EvtGen", pset.getUntrackedParameter< ParameterSet >(curSet)));
       exSharedResources.emplace_back(edm::SharedResourceNames::kEvtGen);
       exSharedResources.emplace_back(edm::SharedResourceNames::kPythia6);
       exSharedResources.emplace_back(gen::FortranInstance::kFortranInstance);
@@ -121,6 +121,10 @@ void ExternalDecayDriver::init( const edm::EventSetup& es )
      for ( std::vector<int>::const_iterator i=fEvtGenInterface->operatesOnParticles().begin();
 	   i!=fEvtGenInterface->operatesOnParticles().end(); i++ )
        fPDGs.push_back( *i );
+       for ( unsigned int iss=0; iss<fEvtGenInterface->specialSettings().size(); iss++ ){
+         fSpecialSettings.push_back( fEvtGenInterface->specialSettings()[iss] );
+       }
+
    }
    
    

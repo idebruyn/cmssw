@@ -10,7 +10,7 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "Validation/RecoTrack/interface/MultiTrackValidatorBase.h"
-#include "Validation/RecoTrack/interface/MTVHistoProducerAlgo.h"
+#include "Validation/RecoTrack/interface/MTVHistoProducerAlgoForTracker.h"
 
 #include "TrackingTools/TransientTrackingRecHit/interface/TransientTrackingRecHitBuilder.h"
 #include "RecoTracker/TransientTrackingRecHit/interface/TkTransientTrackingRecHitBuilder.h"
@@ -26,22 +26,21 @@ class TrackerSeedValidator : public DQMEDAnalyzer, protected MultiTrackValidator
 
   /// Method called once per event
   void analyze(const edm::Event&, const edm::EventSetup& ) override;
-  /// Method called at the end of the event loop
-  void endRun(edm::Run const&, edm::EventSetup const&) override;
   /// Method called to book the DQM histograms
   void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
   
  private:
+  std::vector<edm::EDGetTokenT<reco::TrackToTrackingParticleAssociator>> associatorTokens;
+
   std::string builderName;
   edm::ESHandle<TransientTrackingRecHitBuilder> theTTRHBuilder;
   std::string dirName_;
 
-  bool runStandalone;
   // select tracking particles 
   //(i.e. "denominator" of the efficiency ratio)
   TrackingParticleSelector tpSelector;				      
   CosmicTrackingParticleSelector cosmictpSelector;
-  MTVHistoProducerAlgo* histoProducerAlgo_;
+  std::unique_ptr<MTVHistoProducerAlgoForTracker> histoProducerAlgo_;
 
 };
 

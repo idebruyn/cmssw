@@ -20,7 +20,6 @@
 #include "DataFormats/Common/interface/ThinnedAssociation.h"
 #include "DataFormats/Provenance/interface/BranchDescription.h"
 #include "DataFormats/Provenance/interface/BranchKey.h"
-#include "DataFormats/Provenance/interface/ParentageRegistry.h"
 #include "DataFormats/Provenance/interface/ProductRegistry.h"
 #include "DataFormats/Provenance/interface/ThinnedAssociationsHelper.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -28,6 +27,7 @@
 #include "FWCore/Framework/interface/OutputModuleDescription.h"
 #include "FWCore/Framework/interface/TriggerNamesService.h"
 #include "FWCore/Framework/src/EventSignalsSentry.h"
+#include "FWCore/Framework/src/PreallocationConfiguration.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
@@ -54,25 +54,28 @@ namespace edm {
     droppedBranchIDToKeptBranchID_(),
     branchIDLists_(new BranchIDLists),
     origBranchIDLists_(nullptr),
-    thinnedAssociationsHelper_(new ThinnedAssociationsHelper),
-    branchParents_(),
-    branchChildren_() {
+    thinnedAssociationsHelper_(new ThinnedAssociationsHelper) {
       
       hasNewlyDroppedBranch_.fill(false);
       
       Service<service::TriggerNamesService> tns;
       process_name_ = tns->getProcessName();
       
-      ParameterSet selectevents =
+      selectEvents_ =
       pset.getUntrackedParameterSet("SelectEvents", ParameterSet());
       
-      selectevents.registerIt(); // Just in case this PSet is not registered
+      selectEvents_.registerIt(); // Just in case this PSet is not registered
       
-      selector_config_id_ = selectevents.id();
-      wantAllEvents_ = detail::configureEventSelector(selectevents,
+      selector_config_id_ = selectEvents_.id();
+      
+      //need to set wantAllEvents_ in constructor
+      // we will make the remaining selectors once we know how many streams
+      selectors_.resize(1);
+      wantAllEvents_ = detail::configureEventSelector(selectEvents_,
                                                       process_name_,
                                                       getAllTriggerNames(),
-                                                      selectors_);
+                                                      selectors_[0]);
+
     }
     
     void OutputModuleBase::configure(OutputModuleDescription const& desc) {
@@ -180,6 +183,23 @@ namespace edm {
       return SharedResourcesAcquirer{};
     }
     
+    void OutputModuleBase::doPreallocate(PreallocationConfiguration const& iPC) {
+      auto nstreams = iPC.numberOfStreams();
+      selectors_.resize(nstreams);
+      
+      bool seenFirst = false;
+      for(auto& s : selectors_) {
+        if(seenFirst) {
+          detail::configureEventSelector(selectEvents_,
+                                         process_name_,
+                                         getAllTriggerNames(),
+                                         s);
+        } else {
+          seenFirst = true;
+        }
+      }
+    }
+
     void OutputModuleBase::doBeginJob() {
       resourcesAcquirer_ = createAcquirer();
       this->beginJob();
@@ -189,10 +209,11 @@ namespace edm {
       endJob();
     }
     
-    
-    Trig OutputModuleBase::getTriggerResults(EventPrincipal const& ep,
-                                             ModuleCallingContext const* mcc) const {
-      return selectors_.getOneTriggerResults(ep, mcc);  }
+    bool OutputModuleBase::prePrefetchSelection(StreamID id, EventPrincipal const& ep, ModuleCallingContext const* mcc) {
+      
+      auto& s = selectors_[id.value()];
+      return wantAllEvents_ or s.wantEvent(ep,mcc);
+    }
     
     bool
     OutputModuleBase::doEvent(EventPrincipal const& ep,
@@ -202,18 +223,11 @@ namespace edm {
       
       {
         std::lock_guard<std::mutex> guard(mutex_);
-        detail::TRBESSentry products_sentry(selectors_);
-        if(!wantAllEvents_) {
-          if(!selectors_.wantEvent(ep, mcc)) {
-            return true;
-          }
-        }
         {
           std::lock_guard<SharedResourcesAcquirer> guard(resourcesAcquirer_);
           EventSignalsSentry sentry(act,mcc);
           write(ep, mcc);
         }
-        updateBranchParents(ep);
       }
       if(remainingEvents_ > 0) {
         --remainingEvents_;
@@ -299,10 +313,7 @@ namespace edm {
     
     void OutputModuleBase::doCloseFile() {
       if(isFileOpen()) {
-        fillDependencyGraph();
         reallyCloseFile();
-        branchParents_.clear();
-        branchChildren_.clear();
       }
     }
     
@@ -310,7 +321,7 @@ namespace edm {
     }
     
     BranchIDLists const*
-    OutputModuleBase::branchIDLists() const {
+    OutputModuleBase::branchIDLists() {
       if(!droppedBranchIDToKeptBranchID_.empty()) {
         // Make a private copy of the BranchIDLists.
         *branchIDLists_ = *origBranchIDLists_;
@@ -376,41 +387,5 @@ namespace edm {
                                                                 outputModulePathPositions,
                                                                 anyProductProduced);
     }
-    
-    void
-    OutputModuleBase::updateBranchParents(EventPrincipal const& ep) {
-      for(EventPrincipal::const_iterator i = ep.begin(), iEnd = ep.end(); i != iEnd; ++i) {
-        if((*i) && (*i)->productProvenancePtr() != 0) {
-          BranchID const& bid = (*i)->branchDescription().branchID();
-          BranchParents::iterator it = branchParents_.find(bid);
-          if(it == branchParents_.end()) {
-            it = branchParents_.insert(std::make_pair(bid, std::set<ParentageID>())).first;
-          }
-          it->second.insert((*i)->productProvenancePtr()->parentageID());
-          branchChildren_.insertEmpty(bid);
-        }
-      }
-    }
-    
-    void
-    OutputModuleBase::fillDependencyGraph() {
-      for(BranchParents::const_iterator i = branchParents_.begin(), iEnd = branchParents_.end();
-          i != iEnd; ++i) {
-        BranchID const& child = i->first;
-        std::set<ParentageID> const& eIds = i->second;
-        for(std::set<ParentageID>::const_iterator it = eIds.begin(), itEnd = eIds.end();
-            it != itEnd; ++it) {
-          Parentage entryDesc;
-          ParentageRegistry::instance()->getMapped(*it, entryDesc);
-          std::vector<BranchID> const& parents = entryDesc.parents();
-          for(std::vector<BranchID>::const_iterator j = parents.begin(), jEnd = parents.end();
-              j != jEnd; ++j) {
-            branchChildren_.insertChild(*j, child);
-          }
-        }
-      }
-    }
-    
-    
   }
 }

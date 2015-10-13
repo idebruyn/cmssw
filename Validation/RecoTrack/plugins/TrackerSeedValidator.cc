@@ -10,7 +10,6 @@
 #include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
 #include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "SimDataFormats/Vertex/interface/SimVertexContainer.h"
-#include "SimTracker/TrackAssociation/interface/TrackAssociatorBase.h"
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 #include "SimTracker/Records/interface/TrackAssociatorRecord.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
@@ -19,12 +18,15 @@
 #include "TrackingTools/TrajectoryState/interface/PerigeeConversions.h"
 #include "TrackingTools/Records/interface/TransientRecHitRecord.h"
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateTransform.h"
-#include "Validation/RecoTrack/interface/MTVHistoProducerAlgoFactory.h"
+#include "SimGeneral/TrackingAnalysis/interface/TrackingParticleNumberOfLayers.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertexContainer.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "SimDataFormats/EncodedEventId/interface/EncodedEventId.h"
 #include "SimTracker/TrackAssociation/plugins/ParametersDefinerForTPESProducer.h"
+
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 
 #include <TF1.h>
 
@@ -33,13 +35,9 @@ using namespace edm;
 
 typedef edm::Ref<edm::HepMCProduct, HepMC::GenParticle > GenParticleRef;
 
-TrackerSeedValidator::TrackerSeedValidator(const edm::ParameterSet& pset):MultiTrackValidatorBase(pset, consumesCollector(),true){
-  //theExtractor = IsoDepositExtractorFactory::get()->create( extractorName, extractorPSet, consumesCollector());
-
-  ParameterSet psetForHistoProducerAlgo = pset.getParameter<ParameterSet>("histoProducerAlgoBlock");
-  string histoProducerAlgoName = psetForHistoProducerAlgo.getParameter<string>("ComponentName");
-  histoProducerAlgo_ = MTVHistoProducerAlgoFactory::get()->create(histoProducerAlgoName ,psetForHistoProducerAlgo, consumesCollector());
-
+TrackerSeedValidator::TrackerSeedValidator(const edm::ParameterSet& pset):
+  MultiTrackValidatorBase(pset, consumesCollector(),true),
+  histoProducerAlgo_(std::make_unique<MTVHistoProducerAlgoForTracker>(pset.getParameter<ParameterSet>("histoProducerAlgoBlock"), consumesCollector())) {
   dirName_ = pset.getParameter<std::string>("dirName");
 
   tpSelector = TrackingParticleSelector(pset.getParameter<double>("ptMinTP"),
@@ -49,25 +47,28 @@ TrackerSeedValidator::TrackerSeedValidator(const edm::ParameterSet& pset):MultiT
 					pset.getParameter<double>("lipTP"),
 					pset.getParameter<int>("minHitTP"),
 					pset.getParameter<bool>("signalOnlyTP"),
+					pset.getParameter<bool>("intimeOnlyTP"),
 					pset.getParameter<bool>("chargedOnlyTP"),
 					pset.getParameter<bool>("stableOnlyTP"),
 					pset.getParameter<std::vector<int> >("pdgIdTP"));
 
-  runStandalone = pset.getParameter<bool>("runStandalone");
-
   builderName = pset.getParameter<std::string>("TTRHBuilder");
 
   for (auto const& associator: associators) {
-    consumes<reco::TrackToTrackingParticleAssociator>(edm::InputTag(associator));
+    associatorTokens.push_back(consumes<reco::TrackToTrackingParticleAssociator>(associator));
   }
-
 }
 
-TrackerSeedValidator::~TrackerSeedValidator(){delete histoProducerAlgo_;}
+TrackerSeedValidator::~TrackerSeedValidator() {}
 
 void TrackerSeedValidator::bookHistograms(DQMStore::IBooker& ibook, edm::Run const&, edm::EventSetup const& setup) {
-  setup.get<IdealMagneticFieldRecord>().get(theMF);
-  setup.get<TransientRecHitRecord>().get(builderName,theTTRHBuilder);
+  {
+    ibook.cd();
+    ibook.setCurrentFolder(dirName_ + "simulation");
+
+    //Booking histograms concerning with simulated tracks
+    histoProducerAlgo_->bookSimHistos(ibook);
+  }
 
   for (unsigned int ww=0;ww<associators.size();ww++){
     for (unsigned int www=0;www<label.size();www++){
@@ -84,7 +85,7 @@ void TrackerSeedValidator::bookHistograms(DQMStore::IBooker& ibook, edm::Run con
       //      if (dirName.find("Seeds")<dirName.length()){
       //    dirName.replace(dirName.find("Seeds"),6,"");
       //      }
-      string assoc= associators[ww];
+      string assoc= associators[ww].label();;
       if (assoc.find("Track")<assoc.length()){
     assoc.replace(assoc.find("Track"),5,"");
       }
@@ -93,21 +94,9 @@ void TrackerSeedValidator::bookHistograms(DQMStore::IBooker& ibook, edm::Run con
 
       ibook.setCurrentFolder(dirName.c_str());
 
-      // vector of vector initialization
-      histoProducerAlgo_->initialize(); //TO BE FIXED. I'D LIKE TO AVOID THIS CALL
-
-      string subDirName = dirName + "/simulation";
-      ibook.setCurrentFolder(subDirName.c_str());
-
-      //Booking histograms concerning with simulated tracks
-      histoProducerAlgo_->bookSimHistos(ibook);
-
-      ibook.cd();
-      ibook.setCurrentFolder(dirName.c_str());
-
       //Booking histograms concerning with reconstructed tracks
+      histoProducerAlgo_->bookSimTrackHistos(ibook);
       histoProducerAlgo_->bookRecoHistos(ibook);
-      if (runStandalone) histoProducerAlgo_->bookRecoHistosForStandaloneRunning(ibook);
     }//end loop www
   }// end loop ww
 }
@@ -119,15 +108,18 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 				 << "Analyzing new event" << "\n"
 				 << "====================================================\n" << "\n";
 
-  std::vector<const reco::TrackToTrackingParticleAssociator*> associator;
-  edm::Handle<reco::TrackToTrackingParticleAssociator> theAssociator;
-  for (auto const& associatorName: associators) {
-    event.getByLabel(associatorName,theAssociator);
-    associator.push_back( theAssociator.product() );
-  }
-
   edm::ESHandle<ParametersDefinerForTP> parametersDefinerTP;
   setup.get<TrackAssociatorRecord>().get(parametersDefiner,parametersDefinerTP);
+
+  edm::ESHandle<TrackerTopology> httopo;
+  setup.get<TrackerTopologyRcd>().get(httopo);
+  const TrackerTopology& ttopo = *httopo;
+
+  edm::ESHandle<TransientTrackingRecHitBuilder> theTTRHBuilder;
+  setup.get<TransientRecHitRecord>().get(builderName,theTTRHBuilder);
+
+  edm::ESHandle<MagneticField> theMF;
+  setup.get<IdealMagneticFieldRecord>().get(theMF);
 
   edm::Handle<TrackingParticleCollection>  TPCollectionHeff ;
   event.getByToken(label_tp_effic,TPCollectionHeff);
@@ -155,18 +147,35 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
     }
   }
 
-  edm::Handle<TrackingVertexCollection> tvH;
-  event.getByToken(label_tv,tvH);
-  TrackingVertexCollection tv = *tvH;
+  // Calculate the number of 3D layers for TPs
+  //
+  // I would have preferred to produce the ValueMap to Event and read
+  // it from there, but there would have been quite some number of
+  // knock-on effects, and again the fact that we take two TP
+  // collections do not support Ref<TP>'s would have complicated that.
+  //
+  // In principle we could use the SimHitTPAssociationList read above
+  // for parametersDefinerIsCosmic_, but since we don't currently
+  // support Ref<TP>s, we can't in general use it since eff/fake TP
+  // collections can, in general, be different.
+  TrackingParticleNumberOfLayers tpNumberOfLayersAlgo(event, simHitTokens_);
+  auto nlayers_tPCeff_ptrs = tpNumberOfLayersAlgo.calculate(TPCollectionHeff, setup);
+  const auto& nLayers_tPCeff = *(std::get<TrackingParticleNumberOfLayers::nTrackerLayers>(nlayers_tPCeff_ptrs));
+  const auto& nPixelLayers_tPCeff = *(std::get<TrackingParticleNumberOfLayers::nPixelLayers>(nlayers_tPCeff_ptrs));
+  const auto& nStripMonoAndStereoLayers_tPCeff = *(std::get<TrackingParticleNumberOfLayers::nStripMonoAndStereoLayers>(nlayers_tPCeff_ptrs));
 
   int w=0;
   for (unsigned int ww=0;ww<associators.size();ww++){
+    edm::Handle<reco::TrackToTrackingParticleAssociator> theAssociator;
+    event.getByToken(associatorTokens[ww], theAssociator);
+    const reco::TrackToTrackingParticleAssociator *associator = theAssociator.product();
+
     for (unsigned int www=0;www<label.size();www++){
       edm::LogVerbatim("TrackValidator") << "Analyzing "
 					 << label[www].process()<<":"
 					 << label[www].label()<<":"
 					 << label[www].instance()<<" with "
-					 << associators[ww].c_str() <<"\n";
+					 << associators[ww] <<"\n";
       //
       //get collections from the event
       //
@@ -179,11 +188,11 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 
       //associate seeds
       LogTrace("TrackValidator") << "Calling associateRecoToSim method" << "\n";
-      reco::RecoToSimCollectionSeed recSimColl=associator[ww]->associateRecoToSim(seedCollection,
-										  TPCollectionHfake);
+      reco::RecoToSimCollectionSeed recSimColl=associator->associateRecoToSim(seedCollection,
+                                                                              TPCollectionHfake);
       LogTrace("TrackValidator") << "Calling associateSimToReco method" << "\n";
-      reco::SimToRecoCollectionSeed simRecColl=associator[ww]->associateSimToReco(seedCollection,
-										  TPCollectionHeff);
+      reco::SimToRecoCollectionSeed simRecColl=associator->associateSimToReco(seedCollection,
+                                                                              TPCollectionHeff);
 
       //
       //fill simulation histograms
@@ -210,9 +219,12 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 	double dzSim = vertex.z() - (vertex.x()*momentum.x()+vertex.y()*momentum.y())/sqrt(momentum.perp2())
 	  * momentum.z()/sqrt(momentum.perp2());
 
-	st++;
+        if(tp->eventId().bunchCrossing() == 0) {
+          st++;
+        }
 
-	histoProducerAlgo_->fill_generic_simTrack_histos(w,momentumTP,vertexTP, tp->eventId().bunchCrossing());
+        if(w == 0)
+          histoProducerAlgo_->fill_generic_simTrack_histos(momentumTP,vertexTP, tp->eventId().bunchCrossing());
 
 	const TrajectorySeed* matchedSeedPointer=0;
 	std::vector<std::pair<edm::RefToBase<TrajectorySeed>, double> > rt;
@@ -232,6 +244,9 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 	}
 
         int nSimHits = tp->numberOfTrackerHits();
+        int nSimLayers = nLayers_tPCeff[tp];
+        int nSimPixelLayers = nPixelLayers_tPCeff[tp];
+        int nSimStripMonoAndStereoLayers = nStripMonoAndStereoLayers_tPCeff[tp];
 
 	//fixme convert seed into track
 	reco::Track* matchedTrackPointer = 0;
@@ -253,17 +268,20 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 	  //GlobalPoint vSeed(vSeed1.x()-bs.x0(),vSeed1.y()-bs.y0(),vSeed1.z()-bs.z0());
 	  PerigeeTrajectoryError seedPerigeeErrors = PerigeeConversions::ftsToPerigeeError(tsAtClosestApproachSeed.trackStateAtPCA());
 	  matchedTrackPointer = new reco::Track(0.,0., vSeed1, pSeed, 1, seedPerigeeErrors.covarianceMatrix());
-	  matchedTrackPointer->appendHits(matchedSeedPointer->recHits().first,matchedSeedPointer->recHits().second);
+	  matchedTrackPointer->appendHits(matchedSeedPointer->recHits().first,matchedSeedPointer->recHits().second, ttopo);
 	}
 
 	double dR=0;//fixme: plots vs dR not implemented for now
-	histoProducerAlgo_->fill_recoAssociated_simTrack_histos(w,*tp,tp->momentum(),tp->vertex(),dxySim,dzSim,nSimHits,
-								matchedTrackPointer,puinfo.getPU_NumInteractions(),dR);
+	histoProducerAlgo_->fill_recoAssociated_simTrack_histos(w,*tp,tp->momentum(),tp->vertex(),dxySim,dzSim,0,0,nSimHits,nSimLayers,nSimPixelLayers,nSimStripMonoAndStereoLayers,
+								matchedTrackPointer,puinfo.getPU_NumInteractions(),dR, nullptr);
 
 	sts++;
 	if (matchedTrackPointer) asts++;
 
       } // End  for (TrackingParticleCollection::size_type i=0; i<tPCeff.size(); i++){
+
+      if(w == 0)
+        histoProducerAlgo_->fill_simTrackBased_histos(st);
 
       //
       //fill reconstructed seed histograms
@@ -301,7 +319,7 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 
 	//fixme
 	reco::Track* trackFromSeed = new reco::Track(0.,0., vSeed1, pSeed, 1, seedPerigeeErrors.covarianceMatrix());
-	trackFromSeed->appendHits(seed->recHits().first,seed->recHits().second);
+	trackFromSeed->appendHits(seed->recHits().first,seed->recHits().second, ttopo);
 
 	bool isSigSimMatched(false);
 	bool isSimMatched(false);
@@ -340,7 +358,7 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
 	}
 
 	double dR = 0.;//fixme: plots vs dR not implemented for now
-	histoProducerAlgo_->fill_generic_recoTrack_histos(w,*trackFromSeed,bs.position(),isSimMatched,isSigSimMatched,
+	histoProducerAlgo_->fill_generic_recoTrack_histos(w,*trackFromSeed,bs.position(), nullptr, isSimMatched,isSigSimMatched,
 							  isChargeMatched, numAssocSeeds, 
 							  puinfo.getPU_NumInteractions(),
 							  nSimHits, sharedFraction, dR);
@@ -409,21 +427,3 @@ void TrackerSeedValidator::analyze(const edm::Event& event, const edm::EventSetu
     }
   }
 }
-
-void TrackerSeedValidator::endRun(edm::Run const&, edm::EventSetup const&) {
-  LogTrace("SeedValidator") << "TrackerSeedValidator::endRun()";
-  int w=0;
-  for (unsigned int ww=0;ww<associators.size();ww++){
-    for (unsigned int www=0;www<label.size();www++){
-
-      if (runStandalone) histoProducerAlgo_->finalHistoFits(w);
-      if (runStandalone) histoProducerAlgo_->fillProfileHistosFromVectors(w);
-
-      w++;
-    }
-  }
-  //if ( out.size() != 0 && dbe_ ) dbe_->save(out);
-}
-
-
-

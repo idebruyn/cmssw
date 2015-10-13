@@ -35,6 +35,8 @@
 #include "fastjet/tools/MassDropTagger.hh"
 #include "fastjet/contrib/SoftDrop.hh"
 #include "fastjet/tools/JetMedianBackgroundEstimator.hh"
+#include "fastjet/tools/GridMedianBackgroundEstimator.hh"
+#include "fastjet/tools/Subtractor.hh"
 #include "fastjet/contrib/ConstituentSubtractor.hh"
 #include "RecoJets/JetAlgorithms/interface/CMSBoostedTauSeedingAlgorithm.h"
 
@@ -65,6 +67,7 @@ FastjetJetProducer::FastjetJetProducer(const edm::ParameterSet& iConfig)
     useKtPruning_(false),
     useConstituentSubtraction_(false),
     useSoftDrop_(false),
+    correctShape_(false),
     muCut_(-1.0),
     yCut_(-1.0),
     rFilt_(-1.0),
@@ -76,7 +79,9 @@ FastjetJetProducer::FastjetJetProducer(const edm::ParameterSet& iConfig)
     csRho_EtaMax_(-1.0),
     csRParam_(-1.0),
     beta_(-1.0),
-    R0_(-1.0)
+    R0_(-1.0),
+    gridMaxRapidity_(-1.0), // For fixed-grid rho
+    gridSpacing_(-1.0)  // For fixed-grid rho
 {
 
   if ( iConfig.exists("UseOnlyVertexTracks") )
@@ -214,6 +219,13 @@ FastjetJetProducer::FastjetJetProducer(const edm::ParameterSet& iConfig)
 
   }
 
+  if ( iConfig.exists("correctShape") ) {
+    correctShape_ = iConfig.getParameter<bool>("correctShape");
+    gridMaxRapidity_ = iConfig.getParameter<double>("gridMaxRapidity");
+    gridSpacing_ = iConfig.getParameter<double>("gridSpacing");
+    useExplicitGhosts_ = true;
+  }
+
   input_chrefcand_token_ = consumes<edm::View<reco::RecoChargedRefCandidate> >(src_);
 
 }
@@ -244,6 +256,11 @@ void FastjetJetProducer::produce( edm::Event & iEvent, const edm::EventSetup & i
   
   }
 
+  // fjClusterSeq_ retains quite a lot of memory - about 1 to 7Mb at 200 pileup
+  // depending on the exact configuration; and there are 24 FastjetJetProducers in the
+  // sequence so this adds up to about 60 Mb. It's allocated every time runAlgorithm
+  // is called, so safe to delete here.
+  fjClusterSeq_.reset();
 }
 
 
@@ -368,6 +385,12 @@ void FastjetJetProducer::produceTrackJets( edm::Event & iEvent, const edm::Event
     LogDebug("FastjetTrackJetProducer") << "Put " << jets->size() << " jets in the event.\n";
     iEvent.put(jets);
 
+    // Clear the work vectors so that memory is free for other modules.
+    // Use the trick of swapping with an empty vector so that the memory
+    // is actually given back rather than silently kept.
+    decltype(fjInputs_)().swap(fjInputs_);
+    decltype(fjJets_)().swap(fjJets_);
+    decltype(inputs_)().swap(inputs_);  
 }
 
 
@@ -462,6 +485,16 @@ void FastjetJetProducer::runAlgorithm( edm::Event & iEvent, edm::EventSetup cons
       transformers.push_back( transformer_ptr(sd) );
     }
 
+    unique_ptr<fastjet::Subtractor> subtractor;
+    unique_ptr<fastjet::GridMedianBackgroundEstimator> bge_rho_grid;
+    if ( correctShape_ ) {
+      bge_rho_grid = unique_ptr<fastjet::GridMedianBackgroundEstimator> (new  fastjet::GridMedianBackgroundEstimator(gridMaxRapidity_, gridSpacing_) );
+      bge_rho_grid->set_particles(fjInputs_);
+      subtractor = unique_ptr<fastjet::Subtractor>( new fastjet::Subtractor(  bge_rho_grid.get()) );
+      subtractor->set_use_rho_m();
+      //subtractor->use_common_bge_for_rho_and_rhom(true);
+    }
+
 
     for ( std::vector<fastjet::PseudoJet>::const_iterator ijet = tempJets.begin(),
 	    ijetEnd = tempJets.end(); ijet != ijetEnd; ++ijet ) {
@@ -475,6 +508,10 @@ void FastjetJetProducer::runAlgorithm( edm::Event & iEvent, edm::EventSetup cons
 	} else {
 	  passed=false;
 	}
+      }
+
+      if ( correctShape_ ) {
+	transformedJet = (*subtractor)(transformedJet);
       }
 
       if ( passed ) {

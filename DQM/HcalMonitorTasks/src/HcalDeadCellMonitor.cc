@@ -1,9 +1,9 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDeadCellMonitor.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
+#include "Geometry/Records/interface/HcalRecNumberingRecord.h"
 
-HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps):HcalBaseDQMonitor(ps)
-{
+HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps):HcalBaseDQMonitor(ps) {
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
@@ -75,9 +75,7 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps):HcalBaseDQ
 
 } //constructor
 
-HcalDeadCellMonitor::~HcalDeadCellMonitor()
-{
-} //destructor
+HcalDeadCellMonitor::~HcalDeadCellMonitor() { } //destructor
 
 
 /* ------------------------------------ */ 
@@ -389,11 +387,10 @@ void HcalDeadCellMonitor::setup(DQMStore::IBooker &ib)
 
 } // void HcalDeadCellMonitor::setup(...)
 
-void HcalDeadCellMonitor::bookHistograms(DQMStore::IBooker &ib, const edm::Run& run, const edm::EventSetup& c)
-{
+void HcalDeadCellMonitor::bookHistograms(DQMStore::IBooker &ib, const edm::Run& run, const edm::EventSetup& c) {
   if (debug_>1) std::cout <<"HcalDeadCellMonitor::bookHistograms"<<std::endl;
   HcalBaseDQMonitor::bookHistograms(ib,run,c);
-
+  
   if (tevt_==0) this->setup(ib); // set up histograms if they have not been created before
   if (mergeRuns_==false)
     this->reset();
@@ -533,12 +530,15 @@ void HcalDeadCellMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg
   // Here is where we determine whether or not to process an event
   // Not enough events
   // there are less than minDeadEventCount_ in this LS, but RBXloss is found
+
+  edm::ESHandle<HcalTopology> topo;
+  c.get<HcalRecNumberingRecord>().get(topo);
   
   if (deadevt_>=10 && deadevt_<minDeadEventCount_ && is_RBX_loss_==1)
     {
-      fillNevents_problemCells();
-      fillNevents_recentrechits();
-      fillNevents_recentdigis();
+      fillNevents_problemCells(*topo);
+      fillNevents_recentrechits(*topo);
+      fillNevents_recentdigis(*topo);
             
       endLumiProcessed_=true;
       is_RBX_loss_=0;
@@ -564,9 +564,9 @@ void HcalDeadCellMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg
     
   endLumiProcessed_=true;
   // fillNevents_problemCells checks for never-present cells
-  fillNevents_problemCells();
-  fillNevents_recentdigis();
-  fillNevents_recentrechits();
+  fillNevents_problemCells(*topo);
+  fillNevents_recentdigis(*topo);
+  fillNevents_recentrechits(*topo);
 
   if (ProblemsCurrentLB)
     {
@@ -591,7 +591,11 @@ void HcalDeadCellMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
   // Always carry out overall occupancy test at endRun, regardless minimum number of events?  
   // Or should we require an absolute lower bound?
   // We can always run this test; we'll use the summary client to implement a lower bound before calculating reportSummary values
-  if (endLumiProcessed_==false) fillNevents_problemCells(); // always check for never-present cells
+
+  edm::ESHandle<HcalTopology> topo;
+  c.get<HcalRecNumberingRecord>().get(topo);
+
+  if (endLumiProcessed_==false) fillNevents_problemCells(*topo); // always check for never-present cells
 
   return;
 }
@@ -605,6 +609,7 @@ void HcalDeadCellMonitor::endJob()
 void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
   HcalBaseDQMonitor::analyze(e,s);
+
   if (!IsAllowedCalibType()) return;
   endLumiProcessed_=false;
 
@@ -906,16 +911,25 @@ void HcalDeadCellMonitor::process_Digi(DIGI& digi)
   int depth=digi.id().depth();
 
   // Fill occupancy counter
-  ++recentoccupancy_digi[CalcEtaBin(digi.id().subdet(),ieta,depth)][iphi-1][depth-1];
+  auto eta_index = CalcEtaBin(digi.id().subdet(), ieta, depth);
+  if (eta_index < 0) {
+    // invalid index, return
+    if (debug_ > 0)
+      std::cout << "<HcalDeadCellMonitor::process_Digi> Invalid bin returned, eta_index = " << eta_index << std::endl;
+
+    return;
+  }
+
+  ++recentoccupancy_digi[eta_index][iphi-1][depth-1];
 
   // If previously-missing digi found, change boolean status and fill histogram
-  if (present_digi[CalcEtaBin(digi.id().subdet(),ieta,depth)][iphi-1][depth-1]==false)
+  if (present_digi[eta_index][iphi-1][depth-1]==false)
     {
       if (DigiPresentByDepth.depth[depth-1])
 	{
-	  DigiPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(digi.id().subdet(),ieta,depth)+1,iphi,1);
+	  DigiPresentByDepth.depth[depth-1]->setBinContent(eta_index+1,iphi,1);
 	}
-      present_digi[CalcEtaBin(digi.id().subdet(),ieta,depth)][iphi-1][depth-1]=true;
+      present_digi[eta_index][iphi-1][depth-1]=true;
     }
   return;
 }
@@ -931,14 +945,23 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
   int iphi = id.iphi();
   int depth = id.depth();
   
+  int eta_index = CalcEtaBin(id.subdet(),ieta,depth);
+  if (eta_index < 0) {
+    // invalid index, return
+    if (debug_ > 0)
+      std::cout << "<HcalDeadCellMonitor::process_Digi> Invalid bin returned, eta_index = " << eta_index << std::endl;
+
+    return;
+  }
+
   if (id.subdet()==HcalBarrel)
     {
       if (en>=HBenergyThreshold_)
 	{
-	  ++recentoccupancy_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1];
-	  present_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1]=true;
+	  ++recentoccupancy_rechit[eta_index][iphi-1][depth-1];
+	  present_rechit[eta_index][iphi-1][depth-1]=true;
 	  if (RecHitPresentByDepth.depth[depth-1])
-	    RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1);
+	    RecHitPresentByDepth.depth[depth-1]->setBinContent(eta_index+1,iphi,1);
 	}      
       /////////////////////////////
       // RBX index, HB RBX indices are 0-35
@@ -951,10 +974,10 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
     {
       if (en>=HEenergyThreshold_)
 	{
-	++recentoccupancy_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1];
-	present_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1]=true;
+	++recentoccupancy_rechit[eta_index][iphi-1][depth-1];
+	present_rechit[eta_index][iphi-1][depth-1]=true;
 	if (RecHitPresentByDepth.depth[depth-1])
-	  RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1);
+	  RecHitPresentByDepth.depth[depth-1]->setBinContent(eta_index+1,iphi,1);
 	}
       /////////////////////////////
       // RBX index, HE RBX indices are 36-71
@@ -967,11 +990,11 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
     {
       if (en>=HFenergyThreshold_)
 	{
-	  ++recentoccupancy_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1];
+	  ++recentoccupancy_rechit[eta_index][iphi-1][depth-1];
 	
-	  present_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1]=true;
+	  present_rechit[eta_index][iphi-1][depth-1]=true;
 	  if (RecHitPresentByDepth.depth[depth-1])
-	    RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1);
+	    RecHitPresentByDepth.depth[depth-1]->setBinContent(eta_index+1,iphi,1);
 	}
       /////////////////////////////
       // RBX index, HF RBX indices are 132-155
@@ -984,10 +1007,10 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
     {
       if (en>=HOenergyThreshold_)
 	{
-	  ++recentoccupancy_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1];
-	  present_rechit[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1]=true;
+	  ++recentoccupancy_rechit[eta_index][iphi-1][depth-1];
+	  present_rechit[eta_index][iphi-1][depth-1]=true;
 	  if (RecHitPresentByDepth.depth[depth-1])
-	    RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1); 
+	    RecHitPresentByDepth.depth[depth-1]->setBinContent(eta_index+1,iphi,1); 
 	}
       /////////////////////////////
       // RBX index, HO RBX indices are 73-95 (odd), 96-107 (all), 108-119 (odd), 120-130 (EXCL), 131
@@ -998,8 +1021,7 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
     }
 }
 
-void HcalDeadCellMonitor::fillNevents_recentdigis()
-{
+void HcalDeadCellMonitor::fillNevents_recentdigis(const HcalTopology& topology){
   // Fill Histograms showing digi cells with no occupancy for the past few lumiblocks
   if (!deadmon_test_digis_) return; // extra protection here against calling histograms than don't exist
 
@@ -1028,7 +1050,7 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 		  {
 		    ieta=CalcIeta((HcalSubdetector)subdet,eta,depth+1);
 		    if (ieta==-9999) continue;
-		    if (!validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1))
+		    if (!(topology.validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1)))
 		      continue;
 		    // now check which dead cell tests failed; increment counter if any failed
 		    HcalDetId TempID((HcalSubdetector)subdet, ieta, iphi, (int)depth+1);
@@ -1063,7 +1085,7 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 		{
 		  iphi=phi+1;
 		  
-		  if (!validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1))
+		  if (!(topology.validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1)))
 		    continue;
 		  
 		  // Ignore subdetectors that weren't in run?
@@ -1101,14 +1123,13 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 
   return;
 
-} // void HcalDeadCellMonitor::fillNevents_recentdigis()
+} // void HcalDeadCellMonitor::fillNevents_recentdigis(const HcalTopology&)
 
 
 
 /* ----------------------------------- */
 
-void HcalDeadCellMonitor::fillNevents_recentrechits()
-{
+void HcalDeadCellMonitor::fillNevents_recentrechits(const HcalTopology& topology) {
   // Fill Histograms showing unoccupied rechits, or rec hits with low energy
 
   // This test is a bit pointless, unless the energy threshold is greater than the ZS threshold.
@@ -1145,7 +1166,7 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
 		  {
 		    ieta=CalcIeta((HcalSubdetector)subdet,eta,depth+1);
 		    if (ieta==-9999) continue;
-		    if (!validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1))
+		    if (!(topology.validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1)))
 		      continue;
 		    // now check which dead cell tests failed; increment counter if any failed
 		    HcalDetId TempID((HcalSubdetector)subdet, ieta, iphi, (int)depth+1);
@@ -1179,7 +1200,7 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
 	      for (int phi=0;phi<phibins;++phi)
 		{
 		  iphi=phi+1;
-		  if (!validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1))
+		  if (!(topology.validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1)))
 		    continue;
 		  
 		  if (recentoccupancy_rechit[eta][phi][depth]>0) continue; // cell exceeded energy at least once, so it's not dead
@@ -1212,11 +1233,10 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
   FillUnphysicalHEHFBins(RecentMissingRecHitsByDepth);
 
   return;
-} // void HcalDeadCellMonitor::fillNevents_recentrechits()
+} // void HcalDeadCellMonitor::fillNevents_recentrechits(const HcalTopology&)
 
 
-void HcalDeadCellMonitor::fillNevents_problemCells()
-{
+void HcalDeadCellMonitor::fillNevents_problemCells(const HcalTopology& topology) {
   //fillNevents_problemCells now only performs checks of never-present cells
 
   if (debug_>0)
@@ -1350,7 +1370,7 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 		{
 		  ieta=CalcIeta((HcalSubdetector)subdet,eta,depth+1);
 		  if (ieta==-9999) continue;
-		  if (!validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1))
+		  if (!(topology.validDetId((HcalSubdetector)subdet, ieta, iphi, depth+1)))
 		    continue;
 		  // Ignore subdetectors that weren't in run?
 		  /*
@@ -1587,7 +1607,7 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
     }
 
   return;
-} // void HcalDeadCellMonitor::fillNevents_problemCells(void)
+} // void HcalDeadCellMonitor::fillNevents_problemCells(const HcalTopology&)
 
 
 void HcalDeadCellMonitor::zeroCounters(bool resetpresent)

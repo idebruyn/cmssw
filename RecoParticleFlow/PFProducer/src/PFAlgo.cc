@@ -2253,7 +2253,7 @@ void PFAlgo::processBlock( const reco::PFBlockRef& blockref,
 	    PFClusterRef hoclusterref = elements[iHO].clusterRef();
 	    (*pfCandidates_)[tmpi].addElementInBlock( blockref, iHO);
 	    muonHO = std::min(muonHO_[0]+muonHO_[1],hoclusterref->energy());
-	    (*pfCandidates_)[tmpi].setHcalEnergy(totalHcal-totalHO,muonHcal);
+	    (*pfCandidates_)[tmpi].setHcalEnergy(max(totalHcal-totalHO,0.0),muonHcal);
 	    (*pfCandidates_)[tmpi].setHoEnergy(hoclusterref->energy(),muonHO);
 	  }
 	  // Remove it from the block
@@ -2742,7 +2742,7 @@ void PFAlgo::processBlock( const reco::PFBlockRef& blockref,
 	  (*pfCandidates_)[tmpi].setHcalEnergy( rawhcalEnergy[iPivot],hcalEnergy[iPivot] );
 	  (*pfCandidates_)[tmpi].setHoEnergy(0., 0.);
 	} else { 
-	  (*pfCandidates_)[tmpi].setHcalEnergy( rawhcalEnergy[iPivot]-totalHO,hcalEnergy[iPivot]*(1.-totalHO/rawhcalEnergy[iPivot]));
+	  (*pfCandidates_)[tmpi].setHcalEnergy( max(rawhcalEnergy[iPivot]-totalHO,0.0),hcalEnergy[iPivot]*(1.-totalHO/rawhcalEnergy[iPivot]));
 	  (*pfCandidates_)[tmpi].setHoEnergy(totalHO, totalHO * hcalEnergy[iPivot]/rawhcalEnergy[iPivot]);
 	} 
 	(*pfCandidates_)[tmpi].setPs1Energy( 0. );
@@ -2814,7 +2814,7 @@ void PFAlgo::processBlock( const reco::PFBlockRef& blockref,
 	chargedHadron.setHcalEnergy(  fraction * totalHcal, fraction * totalHcalEnergyCalibrated );          
 	chargedHadron.setHoEnergy(  0., 0. ); 
       } else { 
-	chargedHadron.setHcalEnergy(  fraction * (totalHcal-totalHO), fraction * totalHcalEnergyCalibrated * (1.-totalHO/totalHcal) );          
+	chargedHadron.setHcalEnergy(  fraction * max(totalHcal-totalHO,0.0), fraction * totalHcalEnergyCalibrated * (1.-totalHO/totalHcal) );          
 	chargedHadron.setHoEnergy( fraction * totalHO, fraction * totalHO * totalHcalEnergyCalibrated / totalHcal ); 
       }
       //JB: fixing up (previously omitted) setting of ECAL energy gouzevit
@@ -3098,7 +3098,7 @@ void PFAlgo::processBlock( const reco::PFBlockRef& blockref,
       (*pfCandidates_)[tmpi].setHcalEnergy( totalHcal, calibHcal );
       (*pfCandidates_)[tmpi].setHoEnergy(0.,0.);
     } else { 
-      (*pfCandidates_)[tmpi].setHcalEnergy( totalHcal-totalHO, calibHcal*(1.-totalHO/totalHcal));
+      (*pfCandidates_)[tmpi].setHcalEnergy( max(totalHcal-totalHO,0.0), calibHcal*(1.-totalHO/totalHcal));
       (*pfCandidates_)[tmpi].setHoEnergy(totalHO,totalHO*calibHcal/totalHcal);
     }
     (*pfCandidates_)[tmpi].setPs1Energy( 0. );
@@ -3229,6 +3229,7 @@ unsigned PFAlgo::reconstructTrack( const reco::PFBlockElement& elt, bool allowLo
     pfCandidates_->back().setFlag( reco::PFCandidate::T_TO_DISP, true);
     pfCandidates_->back().setDisplacedVertexRef( eltTrack->displacedVertexRef(reco::PFBlockElement::T_TO_DISP)->displacedVertexRef(), reco::PFCandidate::T_TO_DISP);
   }
+
   // returns index to the newly created PFCandidate
   return pfCandidates_->size()-1;
 }

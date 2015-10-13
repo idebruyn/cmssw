@@ -9,7 +9,7 @@ pixelPairStepClusters = trackClusterRemover.clone(
     pixelClusters                            = cms.InputTag("siPixelClusters"),
     stripClusters                            = cms.InputTag("siStripClusters"),
     oldClusterRemovalInfo                    = cms.InputTag("lowPtTripletStepClusters"),
-    overrideTrkQuals                         = cms.InputTag('lowPtTripletStepSelector','lowPtTripletStep'),
+    trackClassifier                          = cms.InputTag('lowPtTripletStep',"QualityMasks"),
     TrackQuality                             = cms.string('highPurity'),
     minNumberOfLayersWithMeasBeforeFiltering = cms.int32(0),
 )
@@ -62,7 +62,8 @@ pixelPairStepTrajectoryFilter = cms.PSet(
     ComponentType = cms.string('CompositeTrajectoryFilter'),
     filters = cms.VPSet(
         cms.PSet( refToPSet_ = cms.string('pixelPairStepTrajectoryFilterBase')),
-        cms.PSet( refToPSet_ = cms.string('pixelPairStepTrajectoryFilterShape'))),
+    #    cms.PSet( refToPSet_ = cms.string('pixelPairStepTrajectoryFilterShape'))
+    ),
 )
 
 
@@ -109,26 +110,12 @@ pixelPairStepTracks = RecoTracker.TrackProducer.TrackProducer_cfi.TrackProducer.
     )
 
 # Final selection
-import RecoTracker.IterativeTracking.LowPtTripletStep_cff
-import RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi
-pixelPairStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.multiTrackSelector.clone(
-    src='pixelPairStepTracks',
-    useAnyMVA = cms.bool(True),
-    GBRForestLabel = cms.string('MVASelectorIter2_13TeV_v0'),
-    trackSelectors= cms.VPSet(
-        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
-            name = 'pixelPairStepLoose',
-            ), #end of pset
-        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
-            name = 'pixelPairStepTight',
-            preFilterName = 'pixelPairStepLoose',
-            ),
-        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.highpurityMTS.clone(
-            name = 'pixelPairStep',
-            preFilterName = 'pixelPairStepTight',
-            ),
-        ) #end of vpset
-    ) #end of clone
+from RecoTracker.FinalTrackSelectors.TrackMVAClassifierPrompt_cfi import *
+pixelPairStep =  TrackMVAClassifierPrompt.clone()
+pixelPairStep.src = 'pixelPairStepTracks'
+pixelPairStep.GBRForestLabel = 'MVASelectorIter2_13TeV'
+pixelPairStep.qualityCuts = [-0.2,0.0,0.3]
+
 
 # Final sequence
 PixelPairStep = cms.Sequence(pixelPairStepClusters*
@@ -136,4 +123,4 @@ PixelPairStep = cms.Sequence(pixelPairStepClusters*
                          pixelPairStepSeeds*
                          pixelPairStepTrackCandidates*
                          pixelPairStepTracks*
-                         pixelPairStepSelector)
+                         pixelPairStep)

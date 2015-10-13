@@ -116,6 +116,8 @@ namespace edm {
     std::vector<ModuleDescription const*>
     getAllModuleDescriptions() const;
 
+    ProcessConfiguration const& processConfiguration() const { return *processConfiguration_; }
+
     /// Return the number of events this EventProcessor has tried to process
     /// (inclues both successes and failures, including failures due
     /// to exceptions during processing).
@@ -255,7 +257,7 @@ namespace edm {
     // really needed, we should remove them.
 
     std::shared_ptr<ActivityRegistry>           actReg_;
-    std::shared_ptr<ProductRegistry const>      preg_;
+    std::shared_ptr<ProductRegistry>            preg_;
     std::shared_ptr<BranchIDListHelper>         branchIDListHelper_;
     std::shared_ptr<ThinnedAssociationsHelper>  thinnedAssociationsHelper_;
     ServiceToken                                  serviceToken_;

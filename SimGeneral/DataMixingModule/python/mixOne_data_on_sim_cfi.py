@@ -13,7 +13,7 @@ hcalSimBlock.hf2.binOfMaximum = 5
 
 mixData = cms.EDProducer("DataMixingModule",
                    hcalSimBlock,
-    input = cms.SecSource("PoolSource",
+    input = cms.SecSource("EmbeddedRootSource",
         nbPileupEvents = cms.PSet(
             averageNumber = cms.double(1.0)
         ),
@@ -32,8 +32,8 @@ mixData = cms.EDProducer("DataMixingModule",
     #
     mixProdStep1 = cms.bool(False),
     mixProdStep2 = cms.bool(False),
-    IsThisFastSim = cms.string('NO'),  # kludge for fast simulation flag...
-    # Use digis?               
+    # Use digis? 
+    TrackerMergeType = cms.string("Digis"),
     EcalMergeType = cms.string('Digis'),  # set to "Digis" to merge digis
     HcalMergeType = cms.string('Digis'),
     HcalDigiMerge = cms.string('FullProd'),

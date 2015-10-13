@@ -3,10 +3,9 @@
 # This is an example of plotting the standard tracking validation
 # plots from an explicit set of DQM root files.
 
-import Validation.RecoTrack.plotting.plotting as plotting
-from Validation.RecoTrack.plotting.validation import SimpleValidation
+from Validation.RecoTrack.plotting.validation import SimpleValidation, SimpleSample
 import Validation.RecoTrack.plotting.trackingPlots as trackingPlots
-
+import Validation.RecoVertex.plotting.vertexPlots as vertexPlots
 
 
 # Example of file - label pairs
@@ -16,12 +15,19 @@ filesLabels = [
 ]
 
 outputDir = "plots"
+subdirprefix = "sample"
 
-### Track algorithm name and quality. Can be a list.
-Algos= ['ootb', 'iter0', 'iter1','iter2','iter3','iter4','iter5','iter6','iter7','iter9','iter10']
-#Algos= ['ootb']
-Qualities=['', 'highPurity']
 
+# To auto-generate HTML pages, uncomment the commented lines below
 val = SimpleValidation([x[0] for x in filesLabels], [x[1] for x in filesLabels], outputDir)
-val.doPlots(Algos, Qualities, trackingPlots.plotter, algoDirMap=trackingPlots._tracks_map)
+#report = val.createHtmlReport("INSERT_YOUR_BASE_URL_HERE", validationName="Short description of your comparison")
+#report.beginSample(SimpleSample("prefix", "Sample name"))
+val.doPlots(trackingPlots.plotter, subdirprefix=subdirprefix, plotterDrawArgs={"ratio": True},
+#            htmlReport=report
+)
+## Uncomment this to include also vertex plots
+##val.doPlots(vertexPlots.plotter, subdirprefix=subdirprefix, plotterDrawArgs={"ratio": True},
+##            htmlReport=report
+##)
+#report.write()
 

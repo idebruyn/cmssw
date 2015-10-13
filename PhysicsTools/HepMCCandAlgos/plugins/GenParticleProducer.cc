@@ -58,6 +58,9 @@ class GenParticleProducer : public edm::EDProducer {
   /// input & output modes
   bool doSubEvent_;
   bool useCF_;
+  
+  MCTruthHelper<HepMC::GenParticle> mcTruthHelper_;
+  MCTruthHelper<reco::GenParticle> mcTruthHelperGenParts_;  
 
 };
 
@@ -98,7 +101,7 @@ GenParticleProducer::GenParticleProducer( const ParameterSet & cfg ) :
     produces<vector<int> >().setBranchAlias( alias + "BarCodes" );
   }
 
-  if(useCF_) mixToken_ = mayConsume<CrossingFrame<HepMCProduct> >(InputTag(cfg.getParameter<std::string>( "mix" ),"generator"));
+  if(useCF_) mixToken_ = mayConsume<CrossingFrame<HepMCProduct> >(InputTag(cfg.getParameter<std::string>( "mix" ),"generatorunsmeared"));
   else srcToken_ = mayConsume<HepMCProduct>(cfg.getParameter<InputTag>( "src" ));
 }
 
@@ -276,7 +279,7 @@ bool GenParticleProducer::convertParticle(reco::GenParticle& cand, const HepMC::
    } else {
       cand.setVertex( Candidate::Point( 0, 0, 0 ) );
    }
-   MCTruthHelper::fillGenStatusFlags(*part, cand.statusFlags());
+   mcTruthHelper_.fillGenStatusFlags(*part, cand.statusFlags());
    return true;
 }
 

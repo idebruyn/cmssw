@@ -1,6 +1,6 @@
 #include "RecoTracker/SpecialSeedGenerators/interface/CtfSpecialSeedGenerator.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 #include "DataFormats/GeometrySurface/interface/RectangularPlaneBounds.h"
 #include "TrackingTools/GeomPropagators/interface/StraightLinePlaneCrossing.h"
 
@@ -143,10 +143,9 @@ void CtfSpecialSeedGenerator::produce(edm::Event& e, const edm::EventSetup& iSet
 bool CtfSpecialSeedGenerator::run(const edm::EventSetup& iSetup,
 					       const edm::Event& e,
 					       TrajectorySeedCollection& output){
-	std::vector<TrackingRegion*> regions = theRegionProducer->regions(e, iSetup);
-	std::vector<TrackingRegion*>::const_iterator iReg;
+	std::vector<std::unique_ptr<TrackingRegion>> regions = theRegionProducer->regions(e, iSetup);
         bool ok = true;
-	for (iReg = regions.begin(); iReg != regions.end(); iReg++){
+	for (auto iReg = regions.begin(); iReg != regions.end(); iReg++){
 		if(!theSeedBuilder->momentumFromPSet()) theSeedBuilder->setMomentumTo((*iReg)->ptMin());
 		int i = 0;
 		for (auto iGen = theGenerators.begin(); iGen != theGenerators.end(); iGen++){
@@ -160,10 +159,6 @@ bool CtfSpecialSeedGenerator::run(const edm::EventSetup& iSetup,
                   if (!ok) break;
 		}
                 if (!ok) break;
-	}
-	//clear memory
-	for (std::vector<TrackingRegion*>::iterator iReg = regions.begin(); iReg != regions.end(); iReg++){
-		delete *iReg;
 	}
         return ok;
 }
@@ -204,7 +199,7 @@ bool CtfSpecialSeedGenerator::buildSeeds(const edm::EventSetup& iSetup,
 bool CtfSpecialSeedGenerator::preliminaryCheck(const SeedingHitSet& shs, const edm::EventSetup &es ){
 
         edm::ESHandle<TrackerTopology> tTopo;
-        es.get<IdealGeometryRecord>().get(tTopo);
+        es.get<TrackerTopologyRcd>().get(tTopo);
 
 	std::vector<std::pair<unsigned int, unsigned int> > vSubdetLayer;
 	//std::vector<std::string> vSeedLayerNames;

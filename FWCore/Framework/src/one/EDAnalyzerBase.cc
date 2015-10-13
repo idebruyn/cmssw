@@ -45,7 +45,12 @@ namespace edm {
     EDAnalyzerBase::~EDAnalyzerBase()
     {
     }
-    
+
+    void
+    EDAnalyzerBase::callWhenNewProductsRegistered(std::function<void(BranchDescription const&)> const& func) {
+      callWhenNewProductsRegistered_ = func;
+    }
+
     bool
     EDAnalyzerBase::doEvent(EventPrincipal& ep, EventSetup const& c,
                             ActivityRegistry* act,
@@ -55,6 +60,7 @@ namespace edm {
       {
         std::lock_guard<std::mutex> guard(mutex_);
         std::lock_guard<SharedResourcesAcquirer> guardResources(resourcesAcquirer_);
+        e.setSharedResourcesAcquirer(&resourcesAcquirer_);
         EventSignalsSentry sentry(act,mcc);
         this->analyze(e, c);
       }

@@ -7,12 +7,12 @@
 import FWCore.ParameterSet.Config as cms
 
 recoTrackAccumulator = cms.PSet(
-    Input = cms.InputTag("generalTracksBeforeMixing"),
+    signalTracks = cms.InputTag("generalTracksBeforeMixing"),
+    pileUpTracks = cms.InputTag("generalTracksBeforeMixing"),
 
-    GeneralTrackOutput = cms.string("generalTracks"),
-    GeneralTrackExtraOutput = cms.string("generalTracks"),
-    HitOutput = cms.string("generalTracks"),
-
+    outputLabel = cms.string("generalTracks"),
+    
     accumulatorType = cms.string("RecoTrackAccumulator"),
     makeDigiSimLinks = cms.untracked.bool(False)
+
     )

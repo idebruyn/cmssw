@@ -1,12 +1,10 @@
 #include "Utilities/Testing/interface/CppUnit_testdriver.icpp"
 #include "cppunit/extensions/HelperMacros.h"
 
-#define private public
 #include "DataFormats/Common/interface/DetSetNew.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DataFormats/Common/interface/DetSetAlgorithm.h"
 #include "DataFormats/Common/interface/DetSet2RangeMap.h"
-#undef private
 
 #include "FWCore/Utilities/interface/EDMException.h"
 
@@ -263,11 +261,13 @@ namespace {
     Getter(TestDetSet * itest):ntot(0), test(*itest){}
 
     void fill(FF& ff) override {
-      int n=ff.id()-20;
-      CPPUNIT_ASSERT(n>0);
-      ff.resize(n);
-      std::copy(test.sv.begin(),test.sv.begin()+n,ff.begin());
-      ntot+=n;
+      try {
+         int n=ff.id()-20;
+        CPPUNIT_ASSERT(n>0);
+        ff.resize(n);
+        std::copy(test.sv.begin(),test.sv.begin()+n,ff.begin());
+        ntot+=n;
+      } catch (edmNew::CapacityExaustedException) {}
     }
 
     unsigned int ntot;
@@ -427,6 +427,7 @@ void TestDetSet::onDemand() {
       CPPUNIT_ASSERT(!detsets.isValid(21));
       CPPUNIT_ASSERT(!detsets.isValid(22));
       //      DST df = *detsets.find(21);
+      detsets.reserve(5,100);
       DST df = *detsets.find(21,true);
       CPPUNIT_ASSERT(df.id()==21);
       CPPUNIT_ASSERT(df.size()==1);

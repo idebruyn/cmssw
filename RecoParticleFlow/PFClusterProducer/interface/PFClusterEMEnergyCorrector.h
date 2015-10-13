@@ -25,15 +25,15 @@ class PFClusterEMEnergyCorrector {
  private:    
   bool _applyCrackCorrections;
   bool _applyMVACorrections;
+  double _maxPtForMVAEvaluation;
    
   bool autoDetectBunchSpacing_;
   int bunchSpacingManual_;
   
-  edm::EDGetTokenT<int> bunchSpacing_; 
+  edm::EDGetTokenT<unsigned int> bunchSpacing_; 
   
   edm::EDGetTokenT<EcalRecHitCollection> _recHitsEB;
   edm::EDGetTokenT<EcalRecHitCollection> _recHitsEE;  
-  edm::EDGetTokenT<reco::VertexCollection> _vertices;
   
   std::vector<std::string> _condnames_mean_50ns;
   std::vector<std::string> _condnames_sigma_50ns;

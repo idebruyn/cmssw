@@ -1,38 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 
-
-# HLT Online -----------------------------------
-# AlCa
-#from DQM.HLTEvF.HLTAlCaMonPi0_cfi import *
-#from DQM.HLTEvF.HLTAlCaMonEcalPhiSym_cfi import *
-# JetMET
-#from DQM.HLTEvF.HLTMonJetMETDQMSource_cfi import *
-# Electron
-#from DQM.HLTEvF.HLTMonEleBits_cfi import *
-# Muon
-#from DQM.HLTEvF.HLTMonMuonDQM_cfi import *
-#from DQM.HLTEvF.HLTMonMuonBits_cfi import *
-# Photon
-#from DQM.HLTEvF.HLTMonPhotonBits_cfi import *
-# Tau
-#from DQM.HLTEvF.HLTMonTau_cfi import *
-#from DQM.HLTEvF.hltMonBTagIPSource_cfi import *
-#from DQM.HLTEvF.hltMonBTagMuSource_cfi import *
-# hltMonjmDQM  bombs
-# hltMonMuDQM dumps names of all histograms in the directory
-# hltMonPhotonBits in future releases
-# *hltMonJetMET makes a log file, need to learn how to turn it off
-# *hltMonEleBits causes SegmentFaults in HARVESTING(step3) in inlcuded in step2
-
-#import DQMServices.Components.DQMEnvironment_cfi
-#dqmEnvHLTOnline = DQMServices.Components.DQMEnvironment_cfi.dqmEnv.clone()
-#dqmEnvHLTOnline.subSystemFolder = 'HLT'
-
-#onlineHLTSource = cms.Sequence(EcalPi0Mon*EcalPhiSymMon*hltMonEleBits*hltMonMuBits*hltMonTauReco*hltMonBTagIPSource*hltMonBTagMuSource*dqmEnvHLTOnline)
-#onlineHLTSource = cms.Sequence(EcalPi0Mon*EcalPhiSymMon*hltMonMuBits*dqmEnvHLTOnline)
-
-# HLT Offline -----------------------------------
-
 # Egamma
 from DQMOffline.Trigger.HLTGeneralOffline_cfi import *
 
@@ -44,11 +11,13 @@ from DQMOffline.Trigger.MuonOffline_Trigger_cff import *
 # Tau
 from DQMOffline.Trigger.HLTTauDQMOffline_cff import *
 # JetMET
-#from DQMOffline.Trigger.JetMETHLTOfflineSource_cfi import *
 from DQMOffline.Trigger.JetMETHLTOfflineAnalyzer_cff import *
 
+# BTV
+from DQMOffline.Trigger.BTVHLTOfflineSource_cfi import *
 
 from DQMOffline.Trigger.FSQHLTOfflineSource_cfi import *
+from DQMOffline.Trigger.HILowLumiHLTOfflineSource_cfi import *
 
 # TnP
 #from DQMOffline.Trigger.TnPEfficiency_cff import *
@@ -64,6 +33,9 @@ from DQMOffline.Trigger.SiStrip_OfflineMonitoring_cff import *
 # photon jet
 from DQMOffline.Trigger.HigPhotonJetHLTOfflineSource_cfi import * 
 
+#hotline 
+from DQMOffline.Trigger.hotlineDQM_cfi import *
+
 import DQMServices.Components.DQMEnvironment_cfi
 dqmEnvHLT= DQMServices.Components.DQMEnvironment_cfi.dqmEnv.clone()
 dqmEnvHLT.subSystemFolder = 'HLT'
@@ -76,17 +48,27 @@ offlineHLTSource = cms.Sequence(
     egHLTOffDQMSource *
     muonFullOfflineDQM *
     HLTTauDQMOffline *
-    #jetMETHLTOfflineSource *
-    jetMETHLTOfflineAnalyzer *
+    jetMETHLTOfflineAnalyzer * 
     fsqHLTOfflineSourceSequence *
-    #TnPEfficiency *
+    HILowLumiHLTOfflineSourceSequence *
     hltInclusiveVBFSource *
-    trackingMonitorHLT *
-    sistripMonitorHLTsequence *
     higPhotonJetHLTOfflineSource*
     dqmEnvHLT *
-    topHLTriggerOfflineDQM)
+    topHLTriggerOfflineDQM *
+    hotlineDQMSequence
+    )
 
-#triggerOfflineDQMSource =  cms.Sequence(onlineHLTSource*offlineHLTSource)
+# offline DQM for the HLTMonitoring stream
+dqmInfoHLTMon = cms.EDAnalyzer("DQMEventInfo",
+    subSystemFolder = cms.untracked.string('HLT')
+    )
+
+OfflineHLTMonitoring = cms.Sequence(
+    dqmInfoHLTMon *
+    sistripMonitorHLTsequence * 
+    BTVHLTOfflineSource *
+    trackingMonitorHLT
+    )
+
 triggerOfflineDQMSource =  cms.Sequence(offlineHLTSource)
  

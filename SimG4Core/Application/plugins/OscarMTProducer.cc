@@ -91,16 +91,23 @@ OscarMTProducer::OscarMTProducer(edm::ParameterSet const & p, const OscarMTMaste
   produces<edm::PSimHitContainer>("BSCHits");
   produces<edm::PSimHitContainer>("PLTHits");
   produces<edm::PSimHitContainer>("BCM1FHits");
+  produces<edm::PSimHitContainer>("BHMHits");
+  produces<edm::PSimHitContainer>("FastTimerHits");
 
   produces<edm::PCaloHitContainer>("EcalHitsEB");
   produces<edm::PCaloHitContainer>("EcalHitsEE");
   produces<edm::PCaloHitContainer>("EcalHitsES");
   produces<edm::PCaloHitContainer>("HcalHits");
   produces<edm::PCaloHitContainer>("CaloHitsTk");
+  produces<edm::PCaloHitContainer>("HGCHitsEE");
+  produces<edm::PCaloHitContainer>("HGCHitsHEfront");
+  produces<edm::PCaloHitContainer>("HGCHitsHEback");
+
   produces<edm::PSimHitContainer>("MuonDTHits");
   produces<edm::PSimHitContainer>("MuonCSCHits");
   produces<edm::PSimHitContainer>("MuonRPCHits");
   produces<edm::PSimHitContainer>("MuonGEMHits");
+  produces<edm::PSimHitContainer>("MuonME0Hits");
   produces<edm::PCaloHitContainer>("CastorPL");
   produces<edm::PCaloHitContainer>("CastorFI");
   produces<edm::PCaloHitContainer>("CastorBU");

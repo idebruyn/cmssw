@@ -86,6 +86,7 @@ edm::Ref<AppleCollection> ref(refApples, index);
 #include <typeinfo>
 #include <string>
 #include <vector>
+#include <boost/type_traits.hpp>
 
 #include "DataFormats/Common/interface/EDProductfwd.h"
 #include "DataFormats/Provenance/interface/ProvenanceFwd.h"
@@ -110,6 +111,7 @@ edm::Ref<AppleCollection> ref(refApples, index);
 namespace edm {
 
   class ModuleCallingContext;
+  class SharedResourcesAcquirer;
 
   namespace principal_get_adapter_detail {
     void
@@ -138,6 +140,11 @@ namespace edm {
     void setConsumer(EDConsumerBase const* iConsumer) {
       consumer_ = iConsumer;
     }
+    
+    void setSharedResourcesAcquirer(SharedResourcesAcquirer* iSra) {
+      resourcesAcquirer_ = iSra;
+    }
+
 
     bool isComplete() const;
 
@@ -229,7 +236,7 @@ namespace edm {
     ModuleDescription const& md_;
     
     EDConsumerBase const* consumer_;
-
+    SharedResourcesAcquirer* resourcesAcquirer_;
   };
 
   template <typename PROD>

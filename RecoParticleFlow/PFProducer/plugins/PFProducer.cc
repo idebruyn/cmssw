@@ -352,7 +352,7 @@ PFProducer::PFProducer(const edm::ParameterSet& iConfig) {
   pfAlgo_->setPFMuonAndFakeParameters(iConfig);
   
   //Post cleaning of the HF
-  bool postHFCleaning
+  postHFCleaning_
     = iConfig.getParameter<bool>("postHFCleaning");
   double minHFCleaningPt 
     = iConfig.getParameter<double>("minHFCleaningPt");
@@ -368,7 +368,7 @@ PFProducer::PFProducer(const edm::ParameterSet& iConfig) {
     = iConfig.getParameter<double>("minDeltaMet");
 
   // Set post HF cleaning muon parameters
-  pfAlgo_->setPostHFCleaningParameters(postHFCleaning,
+  pfAlgo_->setPostHFCleaningParameters(postHFCleaning_,
 				       minHFCleaningPt,
 				       minSignificance,
 				       maxSignificance,
@@ -454,7 +454,7 @@ PFProducer::beginRun(const edm::Run & run,
   }
   */
   
-  if(useRegressionFromDB_) {
+  if(usePFPhotons_ && useRegressionFromDB_) {
     edm::ESHandle<GBRForest> readerPFLCEB;
     edm::ESHandle<GBRForest> readerPFLCEE;    
     edm::ESHandle<GBRForest> readerPFGCEB;
@@ -617,7 +617,9 @@ PFProducer::produce(Event& iEvent,
       hfCopy.push_back( (*hfCleaned)[jhf] );
     }
   }
-  pfAlgo_->checkCleaning( hfCopy );
+
+  if (postHFCleaning_)
+    pfAlgo_->checkCleaning( hfCopy );
 
   // Save recovered HF candidates
   auto_ptr< reco::PFCandidateCollection > 

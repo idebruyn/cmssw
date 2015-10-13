@@ -10,9 +10,11 @@ import netrc
 import os
 import re
 import sys
+import stat
 import subprocess
 import tempfile
 import textwrap
+import time
 
 import sqlalchemy
 
@@ -66,7 +68,8 @@ def _identify_object(session, objtype, name):
                 raise Exception('There is no tag named %s in the database.' % name)
         elif objtype == 'gt':
             if not _exists(session, conddb.GlobalTag.name, name):
-                raise Exception('There is no global tag named %s in the database.' % name)
+	        # raise Exception('There is no global tag named %s in the database.' % name)
+                logging.info('There is no global tag table in the database.')
         elif objtype == 'payload':
             # In the case of a payload, check and also return the full hash
             return objtype, _get_payload_full_hash(session, name)
@@ -112,6 +115,7 @@ def _run_editor(editor, tempfd):
 
 
 def _parse_timestamp(timestamp):
+
     try:
         return datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
     except ValueError:
@@ -137,10 +141,15 @@ def _confirm_changes(args):
 
 
 def _exists(session, primary_key, value):
-    return session.query(primary_key).\
-        filter(primary_key == value).\
-        count() != 0
+    ret = None
+    try: 
+        ret = session.query(primary_key).\
+    	    filter(primary_key == value).\
+    	    count() != 0
+    except sqlalchemy.exc.OperationalError:
+        pass
 
+    return ret
 
 def _regexp(connection, field, regexp):
     '''To be used inside filter().
@@ -231,8 +240,20 @@ def _check_same_object(args):
 
 
 def _connect(db, init, verbose, read_only, force):
+
     logging.debug('Connecting to %s ...', db)
-    connection = conddb.connect(db, init=init, verbose=0 if verbose is None else verbose - 1)
+
+    url = conddb.make_url( db )
+    pretty_url = url
+    if url.drivername == 'oracle+frontier':
+        ws = url.host.rsplit('%2F')
+        if ws is not None:
+            pretty_url = 'frontier://%s/%s' %(ws[-1],url.database)
+    connTo = '%s [%s]' %(db,pretty_url)
+    logging.info('Connecting to %s', connTo)
+    logging.debug('DB url: %s',url)
+    connection = conddb.connect(url, init=init, verbose=0 if verbose is None else verbose - 1)
+
 
     if not read_only:
         if connection.is_read_only:
@@ -243,23 +264,32 @@ def _connect(db, init, verbose, read_only, force):
                 logging.warning('You are going to edit an official database. If you are not one of the Offline DB experts but have access to the password for other reasons, please stop now.')
             else:
                 raise Exception('Editing official databases is forbidden. Use the official DropBox to upload conditions. If you need a special intervention on the database, see the contact help: %s' % conddb.contact_help)
+    # for sqlite we trigger the implicit schema creation
+    if init and url.drivername == 'sqlite':
+        connection.init()
+    if not connection.is_valid():
+        raise Exception('No valid schema found in the database: %s' %url)
 
     return connection
 
 
-def connect(args, init=False, read_only=True):
+def connect(args, init=False, read_only=True, schema='cms_conditions'):
     args.force = args.force if 'force' in dir(args) else False
+
     if 'destdb' in args:
-        if args.destdb is None or args.db == args.destdb:
+        if args.destdb is None:
             args.destdb = args.db
-            connection = _connect(args.db, init, args.verbose, read_only, args.force)
-            return connection, connection
+        if args.db == args.destdb:
+            conn1 = _connect(args.destdb, init, args.verbose, read_only, args.force)
+            return conn1, conn1
+        conn1 = _connect( args.db, init, args.verbose, True, args.force)
+        conn2url = conddb.make_url(args.destdb)
+        if conn2url.drivername == 'sqlite' and not os.path.exists(args.destdb): 
+            init = True
+        conn2 = _connect(conn2url, init, args.verbose, False, args.force)
+        return conn1, conn2
 
-        # read_only refers to the destination database only
-        # (the source is always read_only) -- see copy() command
-        return _connect(args.db, init, args.verbose, True, args.force), _connect(args.destdb, init, args.verbose, read_only, args.force)
-
-    return _connect(args.db, init, args.verbose, read_only, args.force)
+    return _connect( args.db, init, args.verbose, read_only, args.force)
 
 
 def str_db_object(db, name):
@@ -301,12 +331,15 @@ class Colors(object):
     end = '\033[0m'
 
     def __init__(self, args):
-        if args.nocolors:
-            # TODO: Also disable if we are not running in a terminal
-            for member in dir(self):
-                if not member.startswith('_'):
-                    setattr(self, member, '')
 
+    	if ( stat.S_ISFIFO(os.fstat(sys.stdout.fileno()).st_mode)  or  # we are running in a pipe
+             args.nocolors ):
+	     self.noColors()
+
+    def noColors(self):
+       for member in dir(self):
+           if not member.startswith('_'):
+               setattr(self, member, '')
 
 colors = None
 
@@ -508,6 +541,9 @@ def search(args):
         def _ilike_or_regexp_highlight_filter(cell):
             return _ilike_or_regexp_highlight(args, cell, args.string)
 
+    def size(cell):
+        return str( sys.getsizeof( bytearray(cell) ) )
+
     output_table(args,
         session.query(conddb.Tag.name, conddb.Tag.time_type, conddb.Tag.object_type, conddb.Tag.synchronization, conddb.Tag.insertion_time, conddb.Tag.description).\
             filter(
@@ -523,7 +559,7 @@ def search(args):
     )
 
     output_table(args,
-        session.query(conddb.Payload.hash, conddb.Payload.object_type, conddb.Payload.version, conddb.Payload.insertion_time).\
+        session.query(conddb.Payload.hash, conddb.Payload.object_type, conddb.Payload.version, conddb.Payload.insertion_time, conddb.Payload.data).\
             filter(
                 _ilike_or_regexp(args, connection, conddb.Payload.hash, args.string)
                 | _ilike_or_regexp(args, connection, conddb.Payload.object_type, args.string)
@@ -531,23 +567,26 @@ def search(args):
             order_by(conddb.Payload.insertion_time.desc()).\
             limit(args.limit).\
             all(),
-        ['Payload', 'Object Type', 'Version', 'Insertion Time'],
-        filters = [_ilike_or_regexp_highlight_filter, _ilike_or_regexp_highlight_filter, None, None, None],
+        ['Payload', 'Object Type', 'Version', 'Insertion Time', 'Size'],
+        filters = [_ilike_or_regexp_highlight_filter, _ilike_or_regexp_highlight_filter, None, None, size],
     )
 
-    output_table(args,
-        session.query(conddb.GlobalTag.name, conddb.GlobalTag.release, conddb.GlobalTag.insertion_time, conddb.GlobalTag.description).\
-            filter(
-                _ilike_or_regexp(args, connection, conddb.GlobalTag.name, args.string)
-                | _ilike_or_regexp(args, connection, conddb.GlobalTag.release, args.string)
-                | _ilike_or_regexp(args, connection, conddb.GlobalTag.description, args.string)
-            ).\
-            order_by(conddb.GlobalTag.insertion_time.desc()).\
-            limit(args.limit).\
-            all(),
-        ['Global Tag', 'Release', 'Insertion Time', 'Description'],
-        filters = [_ilike_or_regexp_highlight_filter, _ilike_or_regexp_highlight_filter, None, _ilike_or_regexp_highlight_filter],
-    )
+    try:
+        output_table(args,
+            session.query(conddb.GlobalTag.name, conddb.GlobalTag.release, conddb.GlobalTag.insertion_time, conddb.GlobalTag.description).\
+                filter(
+                    _ilike_or_regexp(args, connection, conddb.GlobalTag.name, args.string)
+                    | _ilike_or_regexp(args, connection, conddb.GlobalTag.release, args.string)
+                    | _ilike_or_regexp(args, connection, conddb.GlobalTag.description, args.string)
+                ).\
+                order_by(conddb.GlobalTag.insertion_time.desc()).\
+                limit(args.limit).\
+                all(),
+            ['Global Tag', 'Release', 'Insertion Time', 'Description'],
+            filters = [_ilike_or_regexp_highlight_filter, _ilike_or_regexp_highlight_filter, None, _ilike_or_regexp_highlight_filter],
+    	 )
+    except sqlalchemy.exc.OperationalError:
+    	 sys.stderr.write("No table for GlobalTags found in DB.\n\n")
 
 
 def _inserted_before(timestamp):
@@ -572,6 +611,13 @@ def _low(n):
     return int(n) & 0xffffffff
 
 
+def _convertTimeType(since):
+    try:
+        return str(datetime.datetime.utcfromtimestamp(_high(since)).replace(microsecond = _low(since)))
+    except ValueError:
+        return str(datetime.datetime.utcfromtimestamp(_high(since)).replace(microsecond = _low(since)/1000))
+
+
 def _since_filter(time_type):
     '''Returns a filter function for the given time type that returns
     a human-readable string of the given since.
@@ -588,12 +634,37 @@ def _since_filter(time_type):
     '''
 
     if time_type == conddb.TimeType.time:
-        return lambda since: str(datetime.datetime.fromtimestamp(_high(since)).replace(microsecond = _low(since)))
+        return lambda since: '%s (%s)' % (_convertTimeType(since), since)
 
     if time_type == conddb.TimeType.lumi:
-        return lambda since: '%s Lumi %5s' % (_high(since), _low(since))
+        return lambda since: '%s : %5s (%s)' % (_high(since), _low(since), since)
 
     return lambda since: since
+
+
+def listTags_(args):
+    connection = connect(args)
+    session = connection.session()
+
+    output_table(args,
+        session.query(conddb.Tag.name, conddb.Tag.time_type, conddb.Tag.object_type, conddb.Tag.synchronization, conddb.Tag.end_of_validity, conddb.Tag.insertion_time, conddb.Tag.description ).\
+            order_by(conddb.Tag.insertion_time, conddb.Tag.name).\
+            all(),
+        ['Name', 'TimeType', 'ObjectType', 'Synchronisation', 'EndOfValidity', 'Insertion_time', 'Description'],
+    )
+
+
+def listGTsForTag_(args):
+    connection = connect(args)
+    session = connection.session()
+
+    output_table(args,
+        session.query(conddb.GlobalTagMap.global_tag_name, conddb.GlobalTagMap.tag_name, conddb.GlobalTagMap.record, conddb.GlobalTagMap.label).\
+	    filter(conddb.GlobalTagMap.tag_name == args.name).\
+            order_by(conddb.GlobalTagMap.global_tag_name).\
+            all(),
+        ['GT_name', 'Tag_name', 'record', 'label'],
+    )
 
 
 def listGTs_(args):
@@ -623,6 +694,12 @@ def list_(args):
             time_type = session.query(conddb.Tag.time_type).\
                 filter(conddb.Tag.name == name).\
                 scalar()
+	
+	    sinceLabel = 'Since: Run '
+	    if time_type == conddb.TimeType.time:
+	        sinceLabel = 'Since: UTC          (timestamp)'
+	    if time_type == conddb.TimeType.lumi:
+	        sinceLabel = '  Run  : Lumi  (rawSince)'
 
             output_table(args,
                 session.query(conddb.IOV.since, conddb.IOV.insertion_time, conddb.IOV.payload_hash, conddb.Payload.object_type).\
@@ -636,22 +713,26 @@ def list_(args):
                     from_self().\
                     order_by(conddb.IOV.since, conddb.IOV.insertion_time).\
                     all(),
-                ['Since', 'Insertion Time', 'Payload', 'Object Type'],
+                [sinceLabel, 'Insertion Time', 'Payload', 'Object Type'],
                 filters = [_since_filter(time_type), None, None, None],
             )
 
-        is_global_tag = _exists(session, conddb.GlobalTag.name, name)
-        if is_global_tag:
-            if args.long:
-                _output_list_object(args, session.query(conddb.GlobalTag).get(name))
+	try:
+            is_global_tag = _exists(session, conddb.GlobalTag.name, name)
+            if is_global_tag:
+                if args.long:
+                    _output_list_object(args, session.query(conddb.GlobalTag).get(name))
+	    
+                output_table(args,
+                    session.query(conddb.GlobalTagMap.record, conddb.GlobalTagMap.label, conddb.GlobalTagMap.tag_name).\
+                        filter(conddb.GlobalTagMap.global_tag_name == name).\
+                        order_by(conddb.GlobalTagMap.record, conddb.GlobalTagMap.label).\
+                        all(),
+                    ['Record', 'Label', 'Tag'],
+                )
+	except sqlalchemy.exc.OperationalError:
+            sys.stderr.write("No table for GlobalTags found in DB.\n\n")
 
-            output_table(args,
-                session.query(conddb.GlobalTagMap.record, conddb.GlobalTagMap.label, conddb.GlobalTagMap.tag_name).\
-                    filter(conddb.GlobalTagMap.global_tag_name == name).\
-                    order_by(conddb.GlobalTagMap.record, conddb.GlobalTagMap.label).\
-                    all(),
-                ['Record', 'Label', 'Tag'],
-            )
 
         if not is_tag and not is_global_tag:
             raise Exception('There is no tag or global tag named %s in the database.' % name)
@@ -788,14 +869,63 @@ def diff(args):
     if not (is_tag1 and is_tag2) and not (is_global_tag1 and is_global_tag2):
         raise Exception('There are no tag or global tag pairs named %s and %s in the database(s).' % (args.first, args.second))
 
+def convertRunToTimes(startRun, stopRun=None):
 
-def _copy_tag(args, session1, session2, first, second):
+    if not stopRun :
+       stopRun = startRun + 1
+
+    startTime1, stopTime1 = runToTime(startRun)
+    startTime2, stopTime2 = runToTime(stopRun)
+
+    timeMap = { 'start' : {
+    	      		    'hash' : None,
+    	      		    'run'  : startRun,
+			    'time' : startTime1-15., # the time we get may be a bit delayed (7-10 sec according to Salvatore)
+			    'lumi' : startRun<<32|0x1,
+    	      		  },
+    	        'stop'  : {
+    	      		    'hash' : None,
+			    'run'  : stopRun,
+			    'time' : stopTime2+15., # the time we get may be a bit delayed (7-10 sec according to Salvatore)
+			    'lumi' : stopRun<<32|0x1,
+    	      		  } 
+	      }
+
+    logging.debug("convertRunToTimes> start: %s stop %s \n    timeMap: %s " % (startRun, stopRun, str(timeMap)))
+
+    return timeMap
+
+def runToTime(runNr):
+
+    connStr = conddb._getCMSFrontierSQLAlchemyConnectionString('PromptProd', 'CMS_CONDITIONS')
+    
+    connection = conddb.connect(connStr)
+    session = connection.session()
+
+    startIOV = session.query(conddb.IOV.insertion_time).filter(conddb.IOV.tag_name == 'runinfo_start_31X_hlt', conddb.IOV.since == runNr).all()
+    stopIOV  = session.query(conddb.IOV.insertion_time).filter(conddb.IOV.tag_name == 'runinfo_31X_hlt', conddb.IOV.since == runNr).all()
+
+    startTime = time.mktime( startIOV[0][0].timetuple() )
+    stopTime  = time.mktime( stopIOV [0][0].timetuple() )
+
+    return startTime, stopTime
+
+def _copy_tag(args, session1, session2, first, second, fromIOV=None, toIOV=None, timeMap=None):
     logging.info('Copying tag %s to %s ...', str_db_object(args.db, first), str_db_object(args.destdb, second))
 
     # Copy the tag
-    tag = _rawdict(session1.query(conddb.Tag).get(args.first))
-    tag['name'] = args.second
-    tag['end_of_validity'] = 0 # XXX: SQLite does not work with long ints...
+    tag = _rawdict(session1.query(conddb.Tag).get(first))
+    tag['name'] = second
+    tag['end_of_validity'] = -1
+
+    if fromIOV is None:
+        fromIOV = 1
+    
+
+    if timeMap and not fromIOV and not toIOV:
+       fromIOV = timeMap['start'][ tag['time_type'].lower().strip() ]
+       toIOV   = timeMap['stop'] [ tag['time_type'].lower().strip() ]
+    
     session2.add(conddb.Tag(**tag))
 
     # Get the closest smaller IOV than the given starting point (args.from),
@@ -804,25 +934,29 @@ def _copy_tag(args, session1, session2, first, second):
     # In the case where the starting point is before any IOV, we do not need
     # to cut the query anyway.
     prev_iov = None
-    if getattr(args, 'from') is not None:
+    if fromIOV is not None:
+        fromVal = fromIOV
+        logging.debug("checking FROM %s of type %s for tag: %s "  % (fromIOV, tag['time_type'], str(tag['name'])) )
         prev_iov = session1.query(conddb.IOV.since).\
             filter(
-                conddb.IOV.tag_name == args.first,
-                conddb.IOV.since <= getattr(args, 'from'),
+                conddb.IOV.tag_name == first,
+                conddb.IOV.since <= fromVal,
             ).\
             order_by(conddb.IOV.since.desc()).\
             limit(1).\
             scalar()
-        logging.debug('The closest smaller IOV than the given starting one (--from) is %s...', prev_iov)
+        logging.debug('The closest smaller IOV than the given starting one (--from %s) is %s...', fromVal, prev_iov)
 
 
     # Copy the distinct payloads referenced in the IOVs of the tag
     # FIXME: Put the DISTINCT query as a subquery (we can't directly use distinct on BLOBs)
-    query = session1.query(conddb.IOV.payload_hash).filter(conddb.IOV.tag_name == args.first)
+    query = session1.query(conddb.IOV.payload_hash).filter(conddb.IOV.tag_name == first)
     if prev_iov is not None:
         query = query.filter(conddb.IOV.since >= prev_iov)
-    if args.to is not None:
-        query = query.filter(conddb.IOV.since <= args.to)
+    if toIOV is not None:
+        toVal = toIOV
+        logging.debug("filtering with TO %s of type %s for tag: %s to "  % (toIOV, tag['time_type'], str(tag['name'])) )
+        query = query.filter(conddb.IOV.since <= toVal)
     query = query.distinct()
     for (payload_hash, ) in query:
         if _exists(session2, conddb.Payload.hash, payload_hash):
@@ -832,15 +966,15 @@ def _copy_tag(args, session1, session2, first, second):
             session2.add(conddb.Payload(** _rawdict(session1.query(conddb.Payload).filter(conddb.Payload.hash == payload_hash).one())))
 
     # Copy the IOVs of the tag
-    query = session1.query(conddb.IOV).filter(conddb.IOV.tag_name == args.first)
+    query = session1.query(conddb.IOV).filter(conddb.IOV.tag_name == first)
     if prev_iov is not None:
         query = query.filter(conddb.IOV.since >= prev_iov)
-    if args.to is not None:
-        query = query.filter(conddb.IOV.since <= args.to)
+    if toIOV is not None:
+        query = query.filter(conddb.IOV.since <= toIOV)
     for iov in query:
         logging.debug('Copying IOV %s -> %s...', str_iov(iov.since, iov.insertion_time), iov.payload_hash)
         iov = _rawdict(iov)
-        iov['tag_name'] = args.second
+        iov['tag_name'] = second
 
         # In the first IOV of the tag we need to use the starting point given
         # by the user, instead of the one coming from the source tag; unless
@@ -849,7 +983,7 @@ def _copy_tag(args, session1, session2, first, second):
         # Note that we need to replace it for every insertion time (since
         # the primary key is (since, insertion_time).
         if prev_iov is not None and iov['since'] == prev_iov:
-            iov['since'] = getattr(args, 'from')
+            iov['since'] = fromIOV
             first_iov = False
 
         session2.add(conddb.IOV(**iov))
@@ -882,7 +1016,7 @@ def copy(args):
         if args.second is None:
             args.second = args.first
 
-        _copy_tag(args, session1, session2, args.first, args.second)
+        _copy_tag(args, session1, session2, args.first, args.second, getattr(args, 'from'), args.to)
 
         _confirm_changes(args)
         session2.commit()
@@ -892,20 +1026,26 @@ def copy(args):
         if args.second is None:
             args.second = args.first
 
+	timeMap = convertRunToTimes(getattr(args, 'from'), args.to)
+
         logging.info('Copying global tag %s to %s ...', str_db_object(args.db, args.first), str_db_object(args.destdb, args.second))
 
         # Copy the global tag
         global_tag = _rawdict(session1.query(conddb.GlobalTag).get(args.first))
         global_tag['name'] = args.second
+        global_tag['validity'] = 0 # XXX: SQLite does not work with long ints...
         session2.add(conddb.GlobalTag(**global_tag))
 
         # Copy the tags of the global tag
+        logging.debug('Creating query for tag %s filter %s ...', conddb.GlobalTagMap.tag_name, args.first)
         query = session1.query(conddb.GlobalTagMap.tag_name).filter(conddb.GlobalTagMap.global_tag_name == args.first).distinct()
         for (tag, ) in query:
-            if _exists(session2, conddb.Tag.name, tag):
+            logging.debug('Copying tag %s to %s for GT %s ...', str_db_object(args.db, tag), str_db_object(args.destdb, tag), str_db_object(args.destdb, args.second))
+            if _exists(session2, conddb.Tag.name, tag ):
                 logging.warn('Skipping copy of tag %s to %s since it already exists... *The tags may differ in content*', str_db_object(args.db, tag), str_db_object(args.destdb, tag))
             else:
-                _copy_tag(args, session1, session2, tag, tag)
+                logging.debug('going to copy tag %s to %s ... ', str_db_object(args.db, tag), str_db_object(args.destdb, tag))
+                _copy_tag(args, session1, session2, tag, tag, timeMap=timeMap)
 
         # Copy the map of the global tag
         query = session1.query(conddb.GlobalTagMap).filter(conddb.GlobalTagMap.global_tag_name == args.first)
@@ -920,6 +1060,10 @@ def copy(args):
 
 
 def edit(args):
+
+    global colors
+    colors.noColors()
+
     connection = connect(args, read_only=False)
     session = connection.session()
 
@@ -1255,7 +1399,7 @@ def dump(args):
        		else:
             	   _dump_payload(session, payload, args.loadonly)
 
-    elif args.type == 'gt':
+    elif args.type == 'gt' and _exists(session, conddb.GlobalTag.name, name) != None:
         for payload, in session.query(conddb.IOV.payload_hash).\
             filter(conddb.GlobalTagMap.global_tag_name == name, conddb.IOV.tag_name == conddb.GlobalTagMap.tag_name).\
             distinct():
@@ -1285,7 +1429,7 @@ def main():
     parser.add_argument('--verbose', '-v', action='count', help='Verbosity level. -v prints debugging information of this tool, like tracebacks in case of errors. -vv prints, in addition, all SQL statements issued. -vvv prints, in addition, all results returned by queries.')
     parser.add_argument('--quiet', '-q', action='store_true', help='Quiet mode. Disables all standard output.')
     parser.add_argument('--yes', '-y', action='store_true', help='Acknowledged mode. Disables confirmation prompts before writes to the database.')
-    parser.add_argument('--nocolors', action='store_true', help='Disable colors. TODO: This is automatically done when the output is not connected to a terminal (e.g. a file).')
+    parser.add_argument('--nocolors', action='store_true', help='Disable colors. This is automatically done when the output is connected to a pipe (e.g. " conddb ... | less" ).')
     parser.add_argument('--editor', '-e', default=None, help='Editor to use. Default: the content of the EDITOR environment variable.')
     parser.add_argument('--force', action='store_true', help='Force edit in official databases. Only meant for experts.')
     parser.add_argument('--noLimit', action='store_true', help='Ignore the limit setting for the subcommand. This may generate a _lot_ of output and put some load on the DB, so please use with care.')
@@ -1308,6 +1452,13 @@ def main():
     parser_list.add_argument('--snapshot', '-T', default=None, help="Snapshot time. If provided, the output will represent the state of the IOVs inserted into database up to the given time. The format of the string must be one of the following: '2013-01-20', '2013-01-20 10:11:12' or '2013-01-20 10:11:12.123123'.")
     parser_list.add_argument('--limit', '-L', type=int, default=500, help='Limit on the number of IOVs returned. The returned results are the latest N IOVs. Only applies when listing tags.')
     parser_list.set_defaults(func=list_)
+
+    parser_listTags = parser_subparsers.add_parser('listTags', description='Lists all the Tags available in the DB.')
+    parser_listTags.set_defaults(func=listTags_)
+
+    parser_listGTsForTag = parser_subparsers.add_parser('listGTsForTag', description='Lists the GTs which contain a given tag.')
+    parser_listGTsForTag.add_argument('name', help="Name of the tag.")
+    parser_listGTsForTag.set_defaults(func=listGTsForTag_)
 
     parser_listGTs = parser_subparsers.add_parser('listGTs', description='Lists the GTs available in the DB.')
     parser_listGTs.set_defaults(func=listGTs_)
@@ -1368,7 +1519,6 @@ def main():
     if args.noLimit:
        args.limit = None
        logging.info("noLimit specified, setting limit to %s" % str(args.limit))
-
 
     if args.verbose >= 1:
         # Include the traceback

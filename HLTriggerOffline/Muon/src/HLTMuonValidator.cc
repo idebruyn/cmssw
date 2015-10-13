@@ -131,20 +131,19 @@ HLTMuonValidator::stepLabels(const vector<string>& modules) {
             else
                 steps.push_back("L2Iso");
         }
-        else if ((modules[i].find("pfecalIsoRhoFiltered") != string::npos)) {
+        else if ((modules[i].find("pfecalIsoRhoFiltered") != string::npos)||(modules[i].find("pfecalOldIsoRhoFiltered") != string::npos)) {
             if (modules[i].find("L3") != string::npos)
                 steps.push_back("L3EcalIso");
             else if (modules[i].find("TkFiltered") != string::npos)
                 steps.push_back("TkEcalIso");
         }
-        else if ((modules[i].find("pfhcalIsoRhoFiltered") != string::npos)) {
+        else if ((modules[i].find("pfhcalIsoRhoFiltered") != string::npos)||(modules[i].find("pfhcalOldIsoRhoFiltered") != string::npos)) {
             if (modules[i].find("L3") != string::npos)
                 steps.push_back("L3HcalIso");
             else if (modules[i].find("TkFiltered") != string::npos)
                 steps.push_back("TkHcalIso");
         }
         else if (modules[i].find("TkFiltered") != string::npos){
-            steps.push_back("TkL2");
             steps.push_back("Tk");
         }
         else if (modules[i].find("L3") != string::npos)

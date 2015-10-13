@@ -203,18 +203,13 @@ TrackDetMatchInfo TrackDetectorAssociator::associate( const edm::Event& iEvent,
    cachedTrajectory_.setMinDetectorRadius(minR);
    cachedTrajectory_.setMinDetectorLength(minZ*2.);
 
-   double maxR(0);
-   double maxZ(0);
-
    if (parameters.useMuon) {
-     maxR = muonDetIdAssociator_->volume().maxR();
-     maxZ = muonDetIdAssociator_->volume().maxZ();
+     double maxR = muonDetIdAssociator_->volume().maxR();
+     double maxZ = muonDetIdAssociator_->volume().maxZ();
      cachedTrajectory_.setMaxDetectorRadius(maxR);
      cachedTrajectory_.setMaxDetectorLength(maxZ*2.);
    }
    else {
-     maxR = HOmaxR;
-     maxZ = HOmaxZ;
      cachedTrajectory_.setMaxDetectorRadius(HOmaxR);
      cachedTrajectory_.setMaxDetectorLength(HOmaxZ*2.);
    }
@@ -233,6 +228,8 @@ TrackDetMatchInfo TrackDetectorAssociator::associate( const edm::Event& iEvent,
      }
    }
 
+   if ( trackOrigin.momentum().mag() == 0 ) return info;
+   if ( std::isnan(trackOrigin.momentum().x()) or std::isnan(trackOrigin.momentum().y()) or std::isnan(trackOrigin.momentum().z()) ) return info;
    if ( ! cachedTrajectory_.propagateAll(trackOrigin) ) return info;
    
    // get trajectory in calorimeters

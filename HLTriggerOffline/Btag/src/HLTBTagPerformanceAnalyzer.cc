@@ -1,5 +1,8 @@
 #include "HLTriggerOffline/Btag/interface/HLTBTagPerformanceAnalyzer.h"
 
+using namespace edm;
+using namespace reco;
+
 // find the index of the object key of an association vector closest to a given jet, within a given distance
 template <typename T, typename V>
 int closestJet(const RefToBase<reco::Jet>   jet, const edm::AssociationVector<T, V> & association, double distance) {
@@ -18,7 +21,7 @@ int closestJet(const RefToBase<reco::Jet>   jet, const edm::AssociationVector<T,
 // constructors and destructor
 HLTBTagPerformanceAnalyzer::HLTBTagPerformanceAnalyzer(const edm::ParameterSet& iConfig)
 {
-	hlTriggerResults_   		= consumes<TriggerResults>(iConfig.getParameter<InputTag> ("TriggerResults"));
+	hlTriggerResults_   		= consumes<edm::TriggerResults>(iConfig.getParameter<InputTag> ("TriggerResults"));
 	JetTagCollection_ 			= edm::vector_transform(iConfig.getParameter<std::vector<edm::InputTag> >( "JetTag" ), [this](edm::InputTag const & tag){return mayConsume< reco::JetTagCollection>(tag);});
 	m_mcPartons 				= consumes<JetFlavourMatchingCollection>(iConfig.getParameter<InputTag> ("mcPartons") ); 
 	hltPathNames_        		= iConfig.getParameter< std::vector<std::string> > ("HLTPathNames");
@@ -137,7 +140,7 @@ void HLTBTagPerformanceAnalyzer::analyze(const edm::Event& iEvent, const edm::Ev
 
 		for (auto & BtagJT: JetTag) {
 			//fill 1D btag plot for 'all'
-			H1_.at(ind)[JetTagCollection_Label[ind]] -> Fill(BtagJT.second);
+			H1_.at(ind)[JetTagCollection_Label[ind]] -> Fill(std::fmax(0.0,BtagJT.second));
 			if (MCOK) {
 				int m = closestJet(BtagJT.first, *h_mcPartons, m_mcRadius);
 				unsigned int flavour = (m != -1) ? abs((*h_mcPartons)[m].second.getFlavour()) : 0;
@@ -173,7 +176,7 @@ void HLTBTagPerformanceAnalyzer::bookHistograms(DQMStore::IBooker & ibooker, edm
 		float btagL = 0.;
 		float btagU = 1.;
 		int   btagBins = 100;
-		dqmFolder = Form("HLT/BTag/Discrimanator/%s",hltPathNames_[ind].c_str());
+		dqmFolder = Form("HLT/BTag/Discriminator/%s",hltPathNames_[ind].c_str());
 		H1_.push_back(std::map<std::string, MonitorElement *>());
 		H2_.push_back(std::map<std::string, MonitorElement *>());
 		ibooker.setCurrentFolder(dqmFolder);

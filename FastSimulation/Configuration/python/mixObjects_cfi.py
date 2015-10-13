@@ -43,7 +43,7 @@ mixCaloHits = cms.PSet(
 
 # fastsim mixes reconstructed tracks
 mixReconstructedTracks = cms.PSet(
-    input = cms.VInputTag(cms.InputTag("generalTracks")),
+    input = cms.VInputTag(cms.InputTag("generalTracksBeforeMixing")),
     type = cms.string('RecoTrack')
     )
 
@@ -68,7 +68,7 @@ mixSimVertices = cms.PSet(
         
 mixHepMCProducts = cms.PSet(
     makeCrossingFrame = cms.untracked.bool(False),
-    input = cms.VInputTag(cms.InputTag("generator")),
+    input = cms.VInputTag(cms.InputTag("generatorSmeared"),cms.InputTag("generator")),
     type = cms.string('HepMCProduct')
 )
 

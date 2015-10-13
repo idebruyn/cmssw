@@ -14,7 +14,8 @@ hltRegionalPixelTracks.RegionFactoryPSet.RegionPSet = cms.PSet(
     deltaEtaRegion = cms.double( 0.5 ),
     deltaPhiRegion = cms.double( 0.5 ),
     TrkSrc = cms.InputTag( "hltL3Muons" ),
-    UseVtxTks = cms.bool( False )
+    UseVtxTks = cms.bool( False ),
+    howToUseMeasurementTracker = cms.string("Never"),
 )
 
 hltPixelTracksReg = FastSimulation.Tracking.HLTPixelTracksProducer_cfi.hltPixelTracks.clone()
@@ -36,7 +37,8 @@ hltPixelTracksReg.RegionFactoryPSet.RegionPSet = cms.PSet(
         deltaPhi = cms.double( 0.5 ),
         nSigmaZVertex = cms.double( 3.0 ),
         zErrorVertex = cms.double( 0.2 ),
-        nSigmaZBeamSpot = cms.double( 4.0 )
+        nSigmaZBeamSpot = cms.double( 4.0 ),
+        whereToUseMeasurementTracker = cms.string("Never"),
 )
 
 
@@ -45,8 +47,7 @@ hltPixelTracksReg.RegionFactoryPSet.RegionPSet = cms.PSet(
 import FastSimulation.Tracking.TrackCandidateProducer_cfi
 
 hltTau3MuCkfTrackCandidates = FastSimulation.Tracking.TrackCandidateProducer_cfi.trackCandidateProducer.clone()
-hltTau3MuCkfTrackCandidates.SeedProducer = cms.InputTag("hltTau3MuPixelSeedsFromPixelTracks")
-hltTau3MuCkfTrackCandidates.SeedCleaning = True
+hltTau3MuCkfTrackCandidates.src = cms.InputTag("hltTau3MuPixelSeedsFromPixelTracks")
 hltTau3MuCkfTrackCandidates.SplitHits = False
 
 

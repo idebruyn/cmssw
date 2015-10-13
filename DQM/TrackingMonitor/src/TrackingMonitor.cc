@@ -56,6 +56,7 @@ TrackingMonitor::TrackingMonitor(const edm::ParameterSet& iConfig)
 				// ADD by Mia for PU monitoring
 				// vertex plots to be moved in ad hoc class
     , NumberOfTracksVsGoodPVtx(NULL)
+    , NumberOfTracksVsPUPVtx(NULL)
     , NumberOfTracksVsBXlumi(NULL)
 
     , NumberOfTracks_lumiFlag(NULL)
@@ -69,7 +70,7 @@ TrackingMonitor::TrackingMonitor(const edm::ParameterSet& iConfig)
     , doGeneralPropertiesPlots_( conf_.getParameter<bool>("doGeneralPropertiesPlots"))
     , doHitPropertiesPlots_    ( conf_.getParameter<bool>("doHitPropertiesPlots"))
     , doPUmonitoring_          ( conf_.getParameter<bool>("doPUmonitoring") )
-    , genTriggerEventFlag_(new GenericTriggerEventFlag(iConfig,consumesCollector()))
+    , genTriggerEventFlag_(new GenericTriggerEventFlag(iConfig,consumesCollector(), *this))
     , numSelection_       (conf_.getParameter<std::string>("numCut"))
     , denSelection_       (conf_.getParameter<std::string>("denCut"))
 {
@@ -103,15 +104,14 @@ TrackingMonitor::TrackingMonitor(const edm::ParameterSet& iConfig)
   Quality_  = conf_.getParameter<std::string>("Quality");
   AlgoName_ = conf_.getParameter<std::string>("AlgoName");
   
+  // get flag from the configuration
+  doPlotsVsBXlumi_   = conf_.getParameter<bool>("doPlotsVsBXlumi");   
+  if ( doPlotsVsBXlumi_ )
+      theLumiDetails_ = new GetLumi( iConfig.getParameter<edm::ParameterSet>("BXlumiSetup"), c );
+  doPlotsVsGoodPVtx_ = conf_.getParameter<bool>("doPlotsVsGoodPVtx");
+ 
 
   if ( doPUmonitoring_ ) {
-    
-    // get flag from the configuration
-    doPlotsVsBXlumi_   = conf_.getParameter<bool>("doPlotsVsBXlumi");
-    doPlotsVsGoodPVtx_ = conf_.getParameter<bool>("doPlotsVsGoodPVtx");
-    
-    if ( doPlotsVsBXlumi_ )
-      theLumiDetails_ = new GetLumi( iConfig.getParameter<edm::ParameterSet>("BXlumiSetup"), c );
     
     std::vector<edm::InputTag> primaryVertexInputTags    = conf_.getParameter<std::vector<edm::InputTag> >("primaryVertexInputTags");
     std::vector<edm::InputTag> selPrimaryVertexInputTags = conf_.getParameter<std::vector<edm::InputTag> >("selPrimaryVertexInputTags");
@@ -260,20 +260,20 @@ void TrackingMonitor::bookHistograms(DQMStore::IBooker & ibooker,
   
      histname = "NumberOfTracksVsLS_"+ CategoryName;
      NumberOfTracksVsLS = ibooker.bookProfile(histname,histname, LSBin,LSMin,LSMax, TKNoMin, (TKNoMax+0.5)*3.-0.5,"");
-     NumberOfTracksVsLS->getTH1()->SetBit(TH1::kCanRebin);
+     NumberOfTracksVsLS->getTH1()->SetCanExtend(TH1::kAllAxes);
      NumberOfTracksVsLS->setAxisTitle("#Lumi section",1);
      NumberOfTracksVsLS->setAxisTitle("Number of  Tracks",2);
   
      histname = "NumberOfRecHitsPerTrackVsLS_" + CategoryName;
      NumberOfRecHitsPerTrackVsLS = ibooker.bookProfile(histname,histname, LSBin,LSMin,LSMax,0.,40.,"");
-     NumberOfRecHitsPerTrackVsLS->getTH1()->SetBit(TH1::kCanRebin);
+     NumberOfRecHitsPerTrackVsLS->getTH1()->SetCanExtend(TH1::kAllAxes);
      NumberOfRecHitsPerTrackVsLS->setAxisTitle("#Lumi section",1);
-     NumberOfRecHitsPerTrackVsLS->setAxisTitle("Mean number of RecHits per track",2);
+     NumberOfRecHitsPerTrackVsLS->setAxisTitle("Mean number of Valid RecHits per track",2);
   
      if (doFractionPlot_) {
        histname = "GoodTracksFractionVsLS_"+ CategoryName;
        GoodTracksFractionVsLS = ibooker.bookProfile(histname,histname, LSBin,LSMin,LSMax,0,1.1,"");
-       GoodTracksFractionVsLS->getTH1()->SetBit(TH1::kCanRebin);
+       GoodTracksFractionVsLS->getTH1()->SetCanExtend(TH1::kAllAxes);
        GoodTracksFractionVsLS->setAxisTitle("#Lumi section",1);
        GoodTracksFractionVsLS->setAxisTitle("Fraction of Good Tracks",2);
      }
@@ -286,24 +286,31 @@ void TrackingMonitor::bookHistograms(DQMStore::IBooker & ibooker,
   
      for (size_t i=0; i<theVertexMonitor.size(); i++)
        theVertexMonitor[i]->initHisto(ibooker);
-  
-     ibooker.setCurrentFolder(MEFolderName+"/PUmonitoring");
+   }
   
      if ( doPlotsVsGoodPVtx_ ) {
-       // get binning from the configuration
+      ibooker.setCurrentFolder(MEFolderName+"/PUmonitoring");
+      // get binning from the configuration
        int    GoodPVtxBin   = conf_.getParameter<int>("GoodPVtxBin");
        double GoodPVtxMin   = conf_.getParameter<double>("GoodPVtxMin");
        double GoodPVtxMax   = conf_.getParameter<double>("GoodPVtxMax");
     
        histname = "NumberOfTracksVsGoodPVtx";
        NumberOfTracksVsGoodPVtx = ibooker.bookProfile(histname,histname,GoodPVtxBin,GoodPVtxMin,GoodPVtxMax,TKNoMin, (TKNoMax+0.5)*3.-0.5,"");
-       NumberOfTracksVsGoodPVtx->getTH1()->SetBit(TH1::kCanRebin);
+       NumberOfTracksVsGoodPVtx->getTH1()->SetCanExtend(TH1::kAllAxes);
        NumberOfTracksVsGoodPVtx->setAxisTitle("Number of PV",1);
        NumberOfTracksVsGoodPVtx->setAxisTitle("Mean number of Tracks per Event",2);
-    
+
+       histname = "NumberOfTracksVsPUPVtx";
+       NumberOfTracksVsPUPVtx = ibooker.bookProfile(histname,histname,GoodPVtxBin,GoodPVtxMin,GoodPVtxMax,0., 100.,"");
+       NumberOfTracksVsPUPVtx->getTH1()->SetCanExtend(TH1::kAllAxes);
+       NumberOfTracksVsPUPVtx->setAxisTitle("Number of PU",1);
+       NumberOfTracksVsPUPVtx->setAxisTitle("Mean number of Tracks per PUvtx",2);
+
      }
   
      if ( doPlotsVsBXlumi_ ) {
+       ibooker.setCurrentFolder(MEFolderName+"/PUmonitoring");
        // get binning from the configuration
        edm::ParameterSet BXlumiParameters = conf_.getParameter<edm::ParameterSet>("BXlumiSetup");
        int    BXlumiBin   = BXlumiParameters.getParameter<int>("BXlumiBin");
@@ -312,14 +319,14 @@ void TrackingMonitor::bookHistograms(DQMStore::IBooker & ibooker,
     
        histname = "NumberOfTracksVsBXlumi_"+ CategoryName;
        NumberOfTracksVsBXlumi = ibooker.bookProfile(histname,histname, BXlumiBin,BXlumiMin,BXlumiMax, TKNoMin, TKNoMax,"");
-       NumberOfTracksVsBXlumi->getTH1()->SetBit(TH1::kCanRebin);
+       NumberOfTracksVsBXlumi->getTH1()->SetCanExtend(TH1::kAllAxes);
        NumberOfTracksVsBXlumi->setAxisTitle("lumi BX [10^{30}Hzcm^{-2}]",1);
        NumberOfTracksVsBXlumi->setAxisTitle("Mean number of Tracks",2);
     
      }
-   }
+   
 
-   theTrackAnalyzer->initHisto(ibooker);
+     theTrackAnalyzer->initHisto(ibooker, iSetup);
 
    // book the Seed Property histograms
    // ---------------------------------------------------------------------------------//
@@ -505,23 +512,39 @@ void TrackingMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       }
     }
       
+    edm::Handle< reco::VertexCollection > pvHandle;
+    iEvent.getByToken(pvSrcToken_, pvHandle );
+    reco::Vertex const * pv0 = nullptr;  
+    if (pvHandle.isValid()) {
+      pv0 = &pvHandle->front();
+      //--- pv fake (the pv collection should have size==1 and the pv==beam spot)
+      if (   pv0->isFake() || pv0->tracksSize()==0
+      // definition of goodOfflinePrimaryVertex
+          || pv0->ndof() < 4. || pv0->z() > 24.)  pv0 = nullptr;
+    }
+
+
     if (trackHandle.isValid()) {
       
       int numberOfTracks = trackHandle->size();
       int numberOfTracks_num = 0;
+      int numberOfTracks_pv0 = 0;
 
       reco::TrackCollection trackCollection = *trackHandle;
       // calculate the mean # rechits and layers
       int totalRecHits = 0, totalLayers = 0;
-      
+
+      theTrackAnalyzer->setNumberOfGoodVertices(iEvent);
       for (reco::TrackCollection::const_iterator track = trackCollection.begin();
 	   track!=trackCollection.end(); ++track) {
 	
-	if ( numSelection_(*track) )
+	if ( numSelection_(*track) ) {
 	  numberOfTracks_num++;
+          if (pv0 && std::abs(track->dz(pv0->position()))<0.15) ++numberOfTracks_pv0;
+        } 
 
 	if ( doProfilesVsLS_ || doAllPlots)
-	  NumberOfRecHitsPerTrackVsLS->Fill(static_cast<double>(iEvent.id().luminosityBlock()),track->recHitsSize());
+	  NumberOfRecHitsPerTrackVsLS->Fill(static_cast<double>(iEvent.id().luminosityBlock()),track->numberOfValidHits());
 
 	totalRecHits    += track->numberOfValidHits();
 	totalLayers     += track->hitPattern().trackerLayersWithMeasurement();
@@ -659,12 +682,10 @@ void TrackingMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	// do vertex monitoring
 	for (size_t i=0; i<theVertexMonitor.size(); i++)
 	  theVertexMonitor[i]->analyze(iEvent, iSetup);
-	
-	if ( doPlotsVsGoodPVtx_ ) {
+      }
+      if ( doPlotsVsGoodPVtx_ ) {
 	  
 	  size_t totalNumGoodPV = 0;
-	  edm::Handle< reco::VertexCollection > pvHandle;
-	  iEvent.getByToken(pvSrcToken_, pvHandle );
 	  if (pvHandle.isValid()) {
 	    
 	    for (reco::VertexCollection::const_iterator pv = pvHandle->begin();
@@ -678,9 +699,10 @@ void TrackingMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	      totalNumGoodPV++;
 	    }
 	    
-	    NumberOfTracksVsGoodPVtx       -> Fill( totalNumGoodPV, numberOfTracks      );
+            NumberOfTracksVsGoodPVtx	   -> Fill( totalNumGoodPV, numberOfTracks	);
+	    if (totalNumGoodPV>1) NumberOfTracksVsPUPVtx-> Fill( totalNumGoodPV-1, double(numberOfTracks-numberOfTracks_pv0)/double(totalNumGoodPV-1)      );
 	  }
-	}
+
 	
 	if ( doPlotsVsBXlumi_ ) {
 	  double bxlumi = theLumiDetails_->getValue(iEvent);

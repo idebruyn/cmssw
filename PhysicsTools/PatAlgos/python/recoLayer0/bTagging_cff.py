@@ -12,15 +12,23 @@ supportedBtagInfos = [
   , 'inclusiveSecondaryVertexFinderFilteredNegativeTagInfos'
     # new candidate-based framework (supported with RECO/AOD/MiniAOD)
   , 'pfImpactParameterTagInfos'
+  , 'pfImpactParameterTagInfosAK8'
+  , 'pfImpactParameterTagInfosCA15'
   , 'pfSecondaryVertexTagInfos'
   , 'pfSecondaryVertexNegativeTagInfos'
   , 'pfInclusiveSecondaryVertexFinderTagInfos'
+  , 'pfInclusiveSecondaryVertexFinderTagInfosAK8'
+  , 'pfInclusiveSecondaryVertexFinderTagInfosCA15'
   , 'pfInclusiveSecondaryVertexFinderNegativeTagInfos'
   , 'softPFMuonsTagInfos'
+  , 'softPFMuonsTagInfosAK8'
+  , 'softPFMuonsTagInfosCA15'
   , 'softPFElectronsTagInfos'
-  #, 'pfInclusiveSecondaryVertexFinderCtagLTagInfos'
-  #, 'pfInclusiveSecondaryVertexFinderCtagLNegativeTagInfos'
-    # TopTagInfos (unrelated to b tagging)
+  , 'softPFElectronsTagInfosAK8'
+  , 'softPFElectronsTagInfosCA15'
+  #C-Tagging tag infos
+  , 'pfInclusiveSecondaryVertexFinderCvsLTagInfos'
+  # TopTagInfos (unrelated to b tagging)
   , 'caTopTagInfos'
   ]
 # extend for "internal use" in PAT/MINIAOD (renaming)
@@ -120,6 +128,9 @@ supportedBtagDiscr = {
   , 'pfNegativeCombinedMVABJetTags'                         : ['pfImpactParameterTagInfos', 'pfInclusiveSecondaryVertexFinderNegativeTagInfos', 'softPFMuonsTagInfos', 'softPFElectronsTagInfos']
   , 'pfCombinedSecondaryVertexSoftLeptonBJetTags'           : ['pfImpactParameterTagInfos', 'pfInclusiveSecondaryVertexFinderTagInfos', 'softPFMuonsTagInfos', 'softPFElectronsTagInfos']
   , 'pfNegativeCombinedSecondaryVertexSoftLeptonBJetTags'   : ['pfImpactParameterTagInfos', 'pfInclusiveSecondaryVertexFinderNegativeTagInfos', 'softPFMuonsTagInfos', 'softPFElectronsTagInfos']
-  #, 'pfCombinedSecondaryVertexSoftLeptonCtagLJetTags'       : ['pfImpactParameterTagInfos', 'pfInclusiveSecondaryVertexFinderCtagLTagInfos', 'softPFMuonsTagInfos', 'softPFElectronsTagInfos']
-  #, 'pfNegativeCombinedSecondaryVertexSoftLeptonCtagLJetTags' : ['pfImpactParameterTagInfos', 'pfInclusiveSecondaryVertexFinderCtagLNegativeTagInfos', 'softPFMuonsTagInfos', 'softPFElectronsTagInfos']
+  , 'pfBoostedDoubleSecondaryVertexAK8BJetTags'             : ['pfImpactParameterTagInfosAK8', 'pfInclusiveSecondaryVertexFinderTagInfosAK8', 'softPFMuonsTagInfosAK8', 'softPFElectronsTagInfosAK8']
+  , 'pfBoostedDoubleSecondaryVertexCA15BJetTags'            : ['pfImpactParameterTagInfosCA15', 'pfInclusiveSecondaryVertexFinderTagInfosCA15', 'softPFMuonsTagInfosCA15', 'softPFElectronsTagInfosCA15']
+    #C-Tagging
+  , 'pfCombinedCvsLJetTags'                            : ["pfImpactParameterTagInfos", "pfInclusiveSecondaryVertexFinderCvsLTagInfos", "softPFMuonsTagInfos", "softPFElectronsTagInfos"]
+  , 'pfCombinedCvsBJetTags'                            : ["pfImpactParameterTagInfos", "pfInclusiveSecondaryVertexFinderCvsLTagInfos", "softPFMuonsTagInfos", "softPFElectronsTagInfos"]
   }

@@ -24,13 +24,12 @@
 #include "SimG4Core/Notification/interface/CurrentG4Track.h"
 #include "SimG4Core/Application/interface/G4RegionReporter.h"
 #include "SimG4Core/Application/interface/CMSGDMLWriteStructure.h"
+#include "SimG4Core/Geometry/interface/G4CheckOverlap.h"
 
 #include "DetectorDescription/Core/interface/DDCompactView.h"
 
 #include "SimDataFormats/Forward/interface/LHCTransportLinkContainer.h"
 
-#include "HepPDT/defs.h"
-#include "HepPDT/TableBuilder.hh"
 #include "HepPDT/ParticleDataTable.hh"
 
 #include "G4GeometryManager.hh"
@@ -67,11 +66,12 @@ RunManagerMT::RunManagerMT(edm::ParameterSet const & p):
       m_RestorePhysicsTables(p.getParameter<bool>("RestorePhysicsTables")),
       m_pField(p.getParameter<edm::ParameterSet>("MagneticField")),
       m_pPhysics(p.getParameter<edm::ParameterSet>("Physics")),
-      m_pRunAction(p.getParameter<edm::ParameterSet>("RunAction")),      
+      m_pRunAction(p.getParameter<edm::ParameterSet>("RunAction")),
+      m_g4overlap(p.getParameter<edm::ParameterSet>("G4CheckOverlap")),
       m_G4Commands(p.getParameter<std::vector<std::string> >("G4Commands")),
       m_fieldBuilder(nullptr)
 {    
-  m_currentRun = 0;
+  m_currentRun = nullptr;
   G4RunManagerKernel *kernel = G4MTRunManagerKernel::GetRunManagerKernel();
   if(!kernel) m_kernel = new G4MTRunManagerKernel();
   else {
@@ -96,13 +96,19 @@ void RunManagerMT::initG4(const DDCompactView *pDD, const MagneticField *pMF,
 			  const HepPDT::ParticleDataTable *fPDGTable)
 {
   if (m_managerInitialized) return;
+
+  edm::LogInfo("SimG4CoreApplication") 
+    << "RunManagerMT: start initialisation of geometry";
   
   // DDDWorld: get the DDCV from the ES and use it to build the World
   G4LogicalVolumeToDDLogicalPartMap map_;
-  m_world.reset(new DDDWorld(pDD, map_, m_catalog, m_check));
+  m_world.reset(new DDDWorld(pDD, map_, m_catalog, false));
   m_registry.dddWorldSignal_(m_world.get());
 
   // setup the magnetic field
+  edm::LogInfo("SimG4CoreApplication") 
+    << "RunManagerMT: start initialisation of magnetic field";
+
   if (m_pUseMagneticField)
     {
       const GlobalPoint g(0.,0.,0.);
@@ -119,6 +125,9 @@ void RunManagerMT::initG4(const DDCompactView *pDD, const MagneticField *pMF,
     }
 
   // Create physics list
+  edm::LogInfo("SimG4CoreApplication") 
+    << "RunManagerMT: create PhysicsList";
+
   std::unique_ptr<PhysicsListMakerBase>
     physicsMaker(PhysicsListFactory::get()->create(
       m_pPhysics.getParameter<std::string> ("type")));
@@ -136,10 +145,18 @@ void RunManagerMT::initG4(const DDCompactView *pDD, const MagneticField *pMF,
   // adding GFlash, Russian Roulette for eletrons and gamma, 
   // step limiters on top of any Physics Lists
   phys->RegisterPhysics(new ParametrisedEMPhysics("EMoptions",m_pPhysics));
+
+  m_physicsList->ResetStoredInAscii();
+  if (m_RestorePhysicsTables) {
+    m_physicsList->SetPhysicsTableRetrieved(m_PhysicsTablesDir);
+  }
+  edm::LogInfo("SimG4CoreApplication") 
+    << "RunManagerMT: start initialisation of PhysicsList for master";
   
   m_kernel->SetPhysics(phys);
   m_kernel->InitializePhysics();
   m_kernel->SetUpDecayChannels();
+
   // The following line was with the following comment in
   // G4MTRunManager::InitializePhysics() in 10.00.p01; in practice
   // needed to initialize certain singletons during the master thread
@@ -147,50 +164,50 @@ void RunManagerMT::initG4(const DDCompactView *pDD, const MagneticField *pMF,
   //
   //BERTINI, this is needed to create pseudo-particles, to be removed
   G4CascadeInterface::Initialize();
-  //
-
-  m_physicsList->ResetStoredInAscii();
-  if (m_RestorePhysicsTables) {
-    m_physicsList->SetPhysicsTableRetrieved(m_PhysicsTablesDir);
-  }
 
   if (m_kernel->RunInitialization()) { m_managerInitialized = true; }
   else { 
     throw SimG4Exception("G4RunManagerKernel initialization failed!"); 
   }
 
-  if (m_StorePhysicsTables)
-    {
-      std::ostringstream dir;
-      dir << m_PhysicsTablesDir << '\0';
-      std::string cmd = std::string("/control/shell mkdir -p ")+m_PhysicsTablesDir;
-      if (!std::ifstream(dir.str().c_str(), std::ios::in))
-        G4UImanager::GetUIpointer()->ApplyCommand(cmd);
-      m_physicsList->StorePhysicsTable(m_PhysicsTablesDir);
-    }
+  if (m_StorePhysicsTables) {
+    std::ostringstream dir;
+    dir << m_PhysicsTablesDir << '\0';
+    std::string cmd = std::string("/control/shell mkdir -p ")+m_PhysicsTablesDir;
+    if (!std::ifstream(dir.str().c_str(), std::ios::in))
+      G4UImanager::GetUIpointer()->ApplyCommand(cmd);
+    m_physicsList->StorePhysicsTable(m_PhysicsTablesDir);
+  }
 
   initializeUserActions();
 
-  for (unsigned it=0; it<m_G4Commands.size(); it++) {
-    edm::LogInfo("SimG4CoreApplication") << "RunManagerMT:: Requests UI: "
-                                         << m_G4Commands[it];
-    G4UImanager::GetUIpointer()->ApplyCommand(m_G4Commands[it]);
+  if(0 < m_G4Commands.size()) {
+    G4cout << "RunManagerMT: Requested UI commands: " << G4endl;
+    for (unsigned it=0; it<m_G4Commands.size(); ++it) {
+      G4cout << "    " << m_G4Commands[it] << G4endl;
+      G4UImanager::GetUIpointer()->ApplyCommand(m_G4Commands[it]);
+    }
   }
 
+  // geometry dump
   if("" != m_WriteFile) {
     G4GDMLParser gdml(new G4GDMLReadStructure(), new CMSGDMLWriteStructure());
-    gdml.Write(m_WriteFile, m_world->GetWorldVolume(), false);
+    gdml.Write(m_WriteFile, m_world->GetWorldVolume(), true);
   }
 
+  // G4Region dump
   if("" != m_RegionFile) {
     G4RegionReporter rrep;
     rrep.ReportRegions(m_RegionFile);
   }
 
+  // Intersection check
+  if(m_check) { G4CheckOverlap check(m_g4overlap); }
+
   // If the Geant4 particle table is needed, decomment the lines below
   //
-  //  G4cout << "Output of G4ParticleTable DumpTable:" << G4endl;
-  //  G4ParticleTable::GetParticleTable()->DumpTable("ALL");
+  //G4ParticleTable::GetParticleTable()->DumpTable("ALL");
+  //
   G4StateManager::GetStateManager()->SetNewState(G4State_GeomClosed);
   m_currentRun = new G4Run(); 
   m_userRunAction->BeginOfRunAction(m_currentRun); 
@@ -198,7 +215,6 @@ void RunManagerMT::initG4(const DDCompactView *pDD, const MagneticField *pMF,
 
 void RunManagerMT::initializeUserActions() {
   m_runInterface.reset(new SimRunInterface(this, true));
-
   m_userRunAction = new RunAction(m_pRunAction, m_runInterface.get());
   Connect(m_userRunAction);
 }
@@ -219,8 +235,6 @@ void RunManagerMT::terminateRun() {
   m_userRunAction->EndOfRunAction(m_currentRun);
   delete m_userRunAction;
   m_userRunAction = 0;
-  // delete m_currentRun;
-  //m_currentRun = 0;
   if(m_kernel && !m_runTerminated) {
     m_kernel->RunTermination();
     m_runTerminated = true;

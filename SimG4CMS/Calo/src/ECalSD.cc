@@ -31,8 +31,7 @@
 //#define DebugLog
 
 template <class T>
-bool any(const std::vector<T> & v, const T &what)
-{
+bool any(const std::vector<T> & v, const T &what) {
   return std::find(v.begin(), v.end(), what) != v.end();
 }
 
@@ -40,7 +39,7 @@ ECalSD::ECalSD(G4String name, const DDCompactView & cpv,
 	       const SensitiveDetectorCatalog & clg,
 	       edm::ParameterSet const & p, const SimTrackManager* manager) : 
   CaloSD(name, cpv, clg, p, manager, 
-	 p.getParameter<edm::ParameterSet>("ECalSD").getParameter<int>("TimeSliceUnit"),
+	 (float)(p.getParameter<edm::ParameterSet>("ECalSD").getParameter<double>("TimeSliceUnit")),
 	 p.getParameter<edm::ParameterSet>("ECalSD").getParameter<bool>("IgnoreTrackID")), 
   numberingScheme(0){
 
@@ -76,7 +75,7 @@ ECalSD::ECalSD(G4String name, const DDCompactView & cpv,
   std::string attribute = "ReadOutName";
   DDSpecificsFilter filter;
   DDValue           ddv(attribute,name,0);
-  filter.setCriteria(ddv,DDSpecificsFilter::equals);
+  filter.setCriteria(ddv,DDCompOp::equals);
   DDFilteredView fv(cpv);
   fv.addFilter(filter);
   fv.firstChild();
@@ -278,7 +277,7 @@ void ECalSD::initMap(G4String sd, const DDCompactView & cpv) {
   G4String attribute = "ReadOutName";
   DDSpecificsFilter filter;
   DDValue           ddv(attribute,sd,0);
-  filter.setCriteria(ddv,DDSpecificsFilter::equals);
+  filter.setCriteria(ddv,DDCompOp::equals);
   DDFilteredView fv(cpv);
   fv.addFilter(filter);
   fv.firstChild();

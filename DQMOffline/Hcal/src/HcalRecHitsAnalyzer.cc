@@ -327,6 +327,14 @@ HcalRecHitsAnalyzer::HcalRecHitsAnalyzer(edm::ParameterSet const& conf) {
 
     }  // end-of (subdet_ =! 6)
 
+      //Status word correlations
+      sprintf (histo, "HcalRecHitTask_RecHit_StatusWordCorr_HB");
+      RecHit_StatusWordCorr_HB = ibooker.book2D(histo, histo, 2, -0.5, 1.5, 2, -0.5, 1.5);
+
+      sprintf (histo, "HcalRecHitTask_RecHit_StatusWordCorr_HE");
+      RecHit_StatusWordCorr_HE = ibooker.book2D(histo, histo, 2, -0.5, 1.5, 2, -0.5, 1.5);
+
+
     //======================= Now various cases one by one ===================
 
     //Histograms drawn for single pion scan
@@ -903,6 +911,27 @@ void HcalRecHitsAnalyzer::analyze(edm::Event const& ev, edm::EventSetup const& c
     //32-bit status word  
     uint32_t statadd;
     unsigned int isw67 = 0;
+
+    //Statusword correlation
+    unsigned int sw27 = 27;
+    unsigned int sw13 = 13;
+
+    uint32_t statadd27 = 0x1<<sw27;
+    uint32_t statadd13 = 0x1<<sw13;
+
+    float status27 = 0;
+    float status13 = 0;
+
+    if(stwd & statadd27) status27 = 1;
+    if(stwd & statadd13) status13 = 1;
+
+    if        (sub == 1){
+      RecHit_StatusWordCorr_HB->Fill(status13, status27);
+    } else if (sub == 2){
+      RecHit_StatusWordCorr_HE->Fill(status13, status27);
+    }
+
+
     for (unsigned int isw = 0; isw < 32; isw++){
       statadd = 0x1<<(isw);
       if (stwd & statadd){
@@ -1250,11 +1279,11 @@ void HcalRecHitsAnalyzer::fillRecHitsTmp(int subdet_, edm::Event const& ev){
       int stwd    = j->flags();
       int auxstwd = j->aux();
       
-      int serivityLevel = hcalSevLvl( (CaloRecHit*) &*j );
+      int severityLevel = hcalSevLvl( (CaloRecHit*) &*j );
       if( cell.subdet()==HcalBarrel ){
-         hcalHBSevLvlVec.push_back(serivityLevel);
+         hcalHBSevLvlVec.push_back(severityLevel);
       }else if (cell.subdet()==HcalEndcap ){
-         hcalHESevLvlVec.push_back(serivityLevel);
+         hcalHESevLvlVec.push_back(severityLevel);
       } 
       
       if((iz > 0 && eta > 0.) || (iz < 0 && eta <0.) || iz == 0) { 
@@ -1298,9 +1327,9 @@ void HcalRecHitsAnalyzer::fillRecHitsTmp(int subdet_, edm::Event const& ev){
       int stwd     = j->flags();
       int auxstwd  = j->aux();
 
-      int serivityLevel = hcalSevLvl( (CaloRecHit*) &*j );
+      int severityLevel = hcalSevLvl( (CaloRecHit*) &*j );
       if( cell.subdet()==HcalForward ){
-         hcalHFSevLvlVec.push_back(serivityLevel);
+         hcalHFSevLvlVec.push_back(severityLevel);
       } 
 
       if((iz > 0 && eta > 0.) || (iz < 0 && eta <0.) || iz == 0) { 
@@ -1343,9 +1372,9 @@ void HcalRecHitsAnalyzer::fillRecHitsTmp(int subdet_, edm::Event const& ev){
       int stwd     = j->flags();
       int auxstwd  = j->aux();
 
-      int serivityLevel = hcalSevLvl( (CaloRecHit*) &*j );
+      int severityLevel = hcalSevLvl( (CaloRecHit*) &*j );
       if( cell.subdet()==HcalOuter ){
-         hcalHOSevLvlVec.push_back(serivityLevel);
+         hcalHOSevLvlVec.push_back(severityLevel);
       } 
       
       if((iz > 0 && eta > 0.) || (iz < 0 && eta <0.) || iz == 0) { 

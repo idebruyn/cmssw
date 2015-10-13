@@ -154,6 +154,11 @@ namespace pat {
       float hcalIso()  const { return dr04HcalTowerSumEt(); }
       /// Overload of pat::Lepton::caloIso(); returns the sum of ecalIso() and hcalIso
       float caloIso()  const { return ecalIso()+hcalIso(); }
+      /// get and set PFCluster Isolation                                                                                                                                      
+      float ecalPFClusterIso() const { return ecalPFClusIso_; };
+      float hcalPFClusterIso() const { return hcalPFClusIso_; };
+      void setEcalPFClusterIso(float ecalPFClus) { ecalPFClusIso_ = ecalPFClus; };
+      void setHcalPFClusterIso(float hcalPFClus) { hcalPFClusIso_ = hcalPFClus; };
 
       // ---- PF specific methods ----
       bool isPF() const{ return isPF_; }
@@ -177,15 +182,15 @@ namespace pat {
       // ---- embed various impact parameters with errors ----
       typedef enum IPTYPE { PV2D = 0, PV3D = 1, BS2D = 2, BS3D = 3, IpTypeSize = 4 } IpType;
       /// Impact parameter wrt primary vertex or beamspot
-      double dB(IpType type) const;
+      double dB(IPTYPE type) const;
       /// Uncertainty on the corresponding impact parameter
-      double edB(IpType type) const;
+      double edB(IPTYPE type) const;
       /// the version without arguments returns PD2D, but with an absolute value (for backwards compatibility)
       double dB() const { return std::abs(dB(PV2D)); }
       /// the version without arguments returns PD2D, but with an absolute value (for backwards compatibility)
       double edB() const { return std::abs(edB(PV2D)); }
       /// Set impact parameter of a certain type and its uncertainty
-      void setDB(double dB, double edB, IpType type);
+      void setDB(double dB, double edB, IPTYPE type);
 
       // ---- Momentum estimate specific methods ----
       const LorentzVector & ecalDrivenMomentum() const {return ecalDrivenMomentum_;}
@@ -335,7 +340,10 @@ namespace pat {
       double ecalTrackRegressionScale_;
       double ecalTrackRegressionSmear_;
       
-      
+      /// PFCluster Isolation (a la HLT)
+      float ecalPFClusIso_;
+      float hcalPFClusIso_;
+
       /// conversion veto
       bool passConversionVeto_;
 

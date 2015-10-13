@@ -20,6 +20,21 @@ def stepALCAPRODUCER(skims):
         step = ',ALCAPRODUCER:'+('+'.join(skims))
     return step
 
+
+def stepSKIMPRODUCER(PhysicsSkims):
+    """
+    _stepSKIMPRODUCER_
+
+    Creates and returns the configuration string for the SKIM step
+    starting from the list of skims to be run.
+
+    """
+
+    step = ''
+    if len(PhysicsSkims) >0 :
+        step = ',SKIM:'+('+'.join(PhysicsSkims))
+    return step
+
 def addMonitoring(process):
     """
     _addMonitoring_
@@ -121,5 +136,6 @@ def dqmSeq(args,default):
             
 def gtNameAndConnect(globalTag, args):
     if args.has_key('globalTagConnect') and args['globalTagConnect'] != '':
-        return globalTag + ','+args['globalTagConnect']
-    return globalTag
+        return globalTag + ','+args['globalTagConnect']        
+    # we override here the default in the release which uses the FrontierProd servlet not suited for Tier0 activity
+    return globalTag +',frontier://PromptProd/CMS_CONDITIONS'

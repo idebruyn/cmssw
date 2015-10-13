@@ -1,6 +1,12 @@
 import FWCore.ParameterSet.Config as cms
 
+from RecoTracker.Configuration.customiseForRunI import customiseForRunI
+
 def customisePostLS1_Common(process):
+
+    # deal with L1 Emulation separately
+    from L1Trigger.L1TCommon.customsPostLS1 import customiseSimL1EmulatorForStage1
+    process = customiseSimL1EmulatorForStage1(process)
 
     # deal with CSC separately
     from SLHCUpgradeSimulations.Configuration.muonCustoms import customise_csc_PostLS1
@@ -38,26 +44,67 @@ def customisePostLS1_Common(process):
 
 
 def customisePostLS1(process):
-
-    # deal with L1 Emulation separately
-    from L1Trigger.L1TCommon.customsPostLS1 import customiseSimL1EmulatorForPostLS1_25ns
-    process = customiseSimL1EmulatorForPostLS1_25ns(process)
-
+    print """
+    #
+    # -- Warning! You are using a deprecated customisation function. --
+    #
+    # It will probably run fine, but the customisations you are getting may be out of date.
+    # You should update your configuration file by
+    #   If using cmsDriver:
+    #       1) remove the "--customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1" option
+    #       2) add the option "--era Run2_25ns"
+    #   If using a pre-made configuration file:
+    #       1) remove or comment out the "process = customisePostLS1(process)" line.
+    #       2) add "from Configuration.StandardSequences.Eras import eras" to the TOP of the config file (above
+    #          the process declaration).
+    #       3) add "eras.Run2_25ns" as a parameter to the process object, e.g. "process = cms.Process('HLT',eras.Run2_25ns)"
+    #
+    # There is more information at https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCmsDriverEras
+    #
+    """
     # common customisation
     process = customisePostLS1_Common(process)
 
     # 25ns specific customisation
     if hasattr(process,'digitisation_step'):
         process = customise_Digi_25ns(process)
+    if hasattr(process,'dqmoffline_step'):
+        process = customise_DQM_25ns(process)
+
+    return process
+
+
+def customisePostLS1_lowPU(process):
+
+    # common customisations
+    process = customisePostLS1_Common(process)
+
+    # 50ns specific customisation
+    if hasattr(process,'digitisation_step'):
+        process = customise_Digi_50ns(process)
 
     return process
 
 
 def customisePostLS1_50ns(process):
-
-    # deal with L1 Emulation separately
-    from L1Trigger.L1TCommon.customsPostLS1 import customiseSimL1EmulatorForPostLS1_50ns
-    process = customiseSimL1EmulatorForPostLS1_50ns(process)
+    print """
+    #
+    # -- Warning! You are using a deprecated customisation function. --
+    #
+    # It will probably run fine, but the customisations you are getting may be out of date.
+    # You should update your configuration file by
+    #   If using cmsDriver:
+    #       1) remove the "--customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1_50ns" option
+    #       2) add the option "--era Run2_50ns"
+    #   If using a pre-made configuration file:
+    #       1) remove or comment out the "process = customisePostLS1_50ns(process)" line.
+    #       2) add "from Configuration.StandardSequences.Eras import eras" to the TOP of the config file (above
+    #          the process declaration).
+    #       3) add "eras.Run2_50ns" as a parameter to the process object, e.g. "process = cms.Process('HLT',eras.Run2_50ns)"
+    #
+    # There is more information at https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCmsDriverEras
+    #
+    """
 
     # common customisations
     process = customisePostLS1_Common(process)
@@ -70,13 +117,51 @@ def customisePostLS1_50ns(process):
 
 
 def customisePostLS1_HI(process):
-
-    # deal with L1 Emulation separately
-    from L1Trigger.L1TCommon.customsPostLS1 import customiseSimL1EmulatorForPostLS1_HI
-    process = customiseSimL1EmulatorForPostLS1_HI(process)
+    print """
+    #
+    # -- Warning! You are using a deprecated customisation function. --
+    #
+    # It will probably run fine, but the customisations you are getting may be out of date.
+    # You should update your configuration file by
+    #   If using cmsDriver:
+    #       1) remove the "--customise SLHCUpgradeSimulations/Configuration/postLS1Customs.customisePostLS1_HI" option
+    #       2) add the option "--era Run2_HI"
+    #   If using a pre-made configuration file:
+    #       1) remove or comment out the "process = customisePostLS1_HI(process)" line.
+    #       2) add "from Configuration.StandardSequences.Eras import eras" to the TOP of the config file (above
+    #          the process declaration).
+    #       3) add "eras.Run2_HI" as a parameter to the process object, e.g. "process = cms.Process('HLT',eras.Run2_HI)"
+    #
+    # There is more information at https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCmsDriverEras
+    #
+    """
 
     # common customisation
     process = customisePostLS1_Common(process)
+
+    # HI Specific additional customizations:
+    from L1Trigger.L1TCommon.customsPostLS1 import customiseSimL1EmulatorForPostLS1_Additional_HI
+    process = customiseSimL1EmulatorForPostLS1_Additional_HI(process)
+
+    # HI L1Menu:
+    #from L1Trigger.Configuration.customise_overwriteL1Menu import L1Menu_CollisionsHeavyIons2015_v0
+    #process = L1Menu_CollisionsHeavyIons2015_v0(process)
+
+    return process
+
+def customisePostLS1_B0T(process):
+    # 50ns only
+
+    process=customisePostLS1_50ns(process)
+    process=customiseForRunI(process)
+
+    return process
+
+def customisePostLS1_B0T_lowPU(process):
+    # 50ns only
+
+    process=customisePostLS1_lowPU(process)
+    process=customiseForRunI(process)
 
     return process
 
@@ -84,7 +169,7 @@ def customisePostLS1_HI(process):
 def digiEventContent(process):
     #extend the event content
 
-    alist=['RAWSIM','RAWDEBUG','FEVTDEBUG','FEVTDEBUGHLT','GENRAW','RAWSIMHLT','FEVT','PREMIX','PREMIXRAW']
+    alist=['RAWDEBUG','FEVTDEBUG','FEVTDEBUGHLT','GENRAW','RAWSIMHLT','FEVT']
     for a in alist:
         b = a + 'output'
         if hasattr(process,b):
@@ -99,6 +184,16 @@ def customise_DQM(process):
     #process.dqmoffline_step.remove(process.jetMETAnalyzer)
     # Turn off flag of gangedME11a
     process.l1tCsctf.gangedME11a = cms.untracked.bool(False)
+    # Turn off "low bias voltage" region in HCAL noise filters
+    if hasattr(process,'HBHENoiseFilterResultProducer'):
+        process.HBHENoiseFilterResultProducer.IgnoreTS4TS5ifJetInLowBVRegion = cms.bool(False)
+    return process
+
+
+def customise_DQM_25ns(process):
+    # Switch the default decision of the HCAL noise filter
+    if hasattr(process,'HBHENoiseFilterResultProducer'):
+        process.HBHENoiseFilterResultProducer.defaultDecision = cms.string("HBHENoiseFilterResultRun2Loose")
     return process
 
 
@@ -114,7 +209,6 @@ def customise_Sim(process):
     # enable 2015 HF shower library
     process.g4SimHits.HFShowerLibrary.FileName = 'SimG4CMS/Calo/data/HFShowerLibrary_npmt_noatt_eta4_16en_v3.root'
     return process
-
 
 def customise_Digi_Common(process):
     process = digiEventContent(process)
@@ -651,6 +745,7 @@ def customise_L1Emulator(process):
 
 
 def customise_RawToDigi(process):
+    process.RawToDigi.remove(process.gtEvmDigis)
     return process
 
 
@@ -664,33 +759,38 @@ def customise_HLT(process):
 
 def customise_Reco(process):
     #lowering HO threshold with SiPM
-    for prod in process.particleFlowRecHitHO.producers:
-        prod.qualityTests = cms.VPSet(
-            cms.PSet(
-                name = cms.string("PFRecHitQTestThreshold"),
-                threshold = cms.double(0.05) # new threshold for SiPM HO
-            ),
-            cms.PSet(
-                name = cms.string("PFRecHitQTestHCALChannel"),
-                maxSeverities      = cms.vint32(11),
-                cleaningThresholds = cms.vdouble(0.0),
-                flags              = cms.vstring('Standard')
-            )
-        )
+    if hasattr(process,'particleFlowRecHitHO'):
+        for prod in process.particleFlowRecHitHO.producers:
+            prod.qualityTests = cms.VPSet(
+                cms.PSet(
+                    name = cms.string("PFRecHitQTestThreshold"),
+                    threshold = cms.double(0.05) # new threshold for SiPM HO
+                    ),
+                cms.PSet(
+                    name = cms.string("PFRecHitQTestHCALChannel"),
+                    maxSeverities      = cms.vint32(11),
+                    cleaningThresholds = cms.vdouble(0.0),
+                    flags              = cms.vstring('Standard')
+                    )
+                )
 
     #Lower Thresholds also for Clusters!!!    
 
-    for p in process.particleFlowClusterHO.seedFinder.thresholdsByDetector:
-        p.seedingThreshold = cms.double(0.08)
+        for p in process.particleFlowClusterHO.seedFinder.thresholdsByDetector:
+            p.seedingThreshold = cms.double(0.08)
 
-    for p in process.particleFlowClusterHO.initialClusteringStep.thresholdsByDetector:
-        p.gatheringThreshold = cms.double(0.05)
+        for p in process.particleFlowClusterHO.initialClusteringStep.thresholdsByDetector:
+            p.gatheringThreshold = cms.double(0.05)
 
-    for p in process.particleFlowClusterHO.pfClusterBuilder.recHitEnergyNorms:
-        p.recHitEnergyNorm = cms.double(0.05)
+        for p in process.particleFlowClusterHO.pfClusterBuilder.recHitEnergyNorms:
+            p.recHitEnergyNorm = cms.double(0.05)
 
-    process.particleFlowClusterHO.pfClusterBuilder.positionCalc.logWeightDenominator = cms.double(0.05)
-    process.particleFlowClusterHO.pfClusterBuilder.allCellsPositionCalc.logWeightDenominator = cms.double(0.05)
+        process.particleFlowClusterHO.pfClusterBuilder.positionCalc.logWeightDenominator = cms.double(0.05)
+        process.particleFlowClusterHO.pfClusterBuilder.allCellsPositionCalc.logWeightDenominator = cms.double(0.05)
+
+    # Muon reconstruction do not exclude bad chambers
+    if hasattr(process, 'muonDetIdAssociator'):
+        process.muonDetIdAssociator.includeBadChambers = cms.bool(True)
 
     return process
 

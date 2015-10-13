@@ -43,7 +43,16 @@ std::string const TrackBase::algoNames[] = {
     "hltIter2",
     "hltIter3",
     "hltIter4",
-    "hltIterX"
+    "hltIterX",
+    "hiRegitMuInitialStep",
+    "hiRegitMuLowPtTripletStep",
+    "hiRegitMuPixelPairStep",
+    "hiRegitMuDetachedTripletStep",
+    "hiRegitMuMixedTripletStep",
+    "hiRegitMuPixelLessStep",
+    "hiRegitMuTobTecStep",
+    "hiRegitMuMuonSeededStepInOut",
+    "hiRegitMuMuonSeededStepOutIn"
 };
 
 std::string const TrackBase::qualityNames[] = {
@@ -53,7 +62,8 @@ std::string const TrackBase::qualityNames[] = {
     "confirmed",
     "goodIterative",
     "looseSetWithPV",
-    "highPuritySetWithPV"
+    "highPuritySetWithPV",
+    "discarded"
 };
 
 TrackBase::TrackBase() :
@@ -63,9 +73,11 @@ TrackBase::TrackBase() :
     ndof_(0),
     charge_(0),
     algorithm_(undefAlgorithm),
+    originalAlgorithm_(undefAlgorithm),
     quality_(0),
     nLoops_(0)
 {
+    algoMask_.set(algorithm_);
     index idx = 0;
     for (index i = 0; i < dimension; ++i) {
         for (index j = 0; j <= i; ++j) {
@@ -83,9 +95,12 @@ TrackBase::TrackBase(double chi2, double ndof, const Point &vertex, const Vector
     ndof_(ndof),
     charge_(charge),
     algorithm_(algorithm),
+    originalAlgorithm_(algorithm),
     quality_(0),
     nLoops_(nloops)
 {
+    algoMask_.set(algorithm_);
+
     index idx = 0;
     for (index i = 0; i < dimension; ++i) {
         for (index j = 0; j <= i; ++j) {

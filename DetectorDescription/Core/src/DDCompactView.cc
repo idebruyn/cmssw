@@ -1,10 +1,10 @@
 #include "DetectorDescription/Core/interface/DDCompactView.h"
+#include "DetectorDescription/Core/interface/DDCompactViewImpl.h"
 #include "DetectorDescription/Core/interface/DDLogicalPart.h"
 #include "DetectorDescription/Core/interface/DDMaterial.h"
+#include "DetectorDescription/Core/interface/DDPosData.h"
 #include "DetectorDescription/Core/interface/DDSolid.h"
 #include "DetectorDescription/Core/interface/DDName.h"
-#include "DetectorDescription/ExprAlgo/interface/AlgoPos.h"
-
 #include "DetectorDescription/Core/interface/DDSpecifics.h"
 #include "DetectorDescription/Base/interface/DDRotationMatrix.h"
 
@@ -102,34 +102,6 @@ double DDCompactView::weight(const DDLogicalPart & p) const
 {
   return rep_->weight(p);
 }  
-
-void DDCompactView::algoPosPart(const DDLogicalPart & self,
-				const DDLogicalPart & parent,
-				DDAlgo & algo
-				) {
-  if (algo.rep().numRegistered() == 0) {
-    std::string e;
-    e = "DDalgoPosPart: algorithmic positioning\n";
-    e += "\t[" + algo.name().ns() 
-               + ":" 
-	       + algo.name().name() 
-	       + "] is not defined!\n";
-    throw cms::Exception("DDException") << e;
-  }
-  
-  LogDebug ("AlgoPos")  << "DDCompactView, algo=" << std::endl << algo << std::endl;
-  int inner=0;
-  do { 
-    ++inner;
-    DDRotationMatrix * rmp = new DDRotationMatrix(algo.rotation());
-    DDRotation anonymRot = DDanonymousRot(rmp);
-    DDTranslation tr(algo.translation());
-    position(self, parent, algo.label(), tr, anonymRot); 
-    algo.next();
-  } 
-  while(algo.go());
-
-}
 
 void DDCompactView::position (const DDLogicalPart & self, 
 			      const DDLogicalPart & parent,

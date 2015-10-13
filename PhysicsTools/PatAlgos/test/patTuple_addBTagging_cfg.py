@@ -104,6 +104,9 @@ btagDiscriminators = [
     ,'pfCombinedMVABJetTags'
     ,'pfPositiveCombinedMVABJetTags'
     ,'pfNegativeCombinedMVABJetTags'
+    #CTagging
+    ,'pfCombinedCvsLJetTags'
+    ,'pfCombinedCvsBJetTags'
 ]
 
 # uncomment the following lines to add ak4PFJets with new b-tags to your PAT output
@@ -115,6 +118,18 @@ addJetCollection(
    btagDiscriminators = btagDiscriminators
 )
 process.patJetsAK4PF.addTagInfos = True
+
+# uncomment the following lines to add ak8PFJetsCHS with new b-tags to your PAT output
+addJetCollection(
+   process,
+   labelName = 'AK8PFCHS',
+   jetSource = cms.InputTag('ak8PFJetsCHS'),
+   jetCorrections = ('AK8PFchs', cms.vstring(['L1FastJet', 'L2Relative', 'L3Absolute']), 'Type-2'),
+   algo = 'AK',
+   rParam = 0.8,
+   btagDiscriminators = ['pfBoostedDoubleSecondaryVertexAK8BJetTags']
+)
+process.patJetsAK8PFCHS.addTagInfos = True
 
 # uncomment the following lines to add subjets of ak8PFJetsCHSSoftDrop with new b-tags to your PAT output
 addJetCollection(
@@ -148,8 +163,8 @@ process.out.outputCommands.append( 'drop *_selectedPatJetsAK4PF_caloTowers_*' )
 ## switch to RECO input
 from PhysicsTools.PatAlgos.patInputFiles_cff import filesRelValProdTTbarAODSIM
 process.source.fileNames = filesRelValProdTTbarAODSIM
-#from PhysicsTools.PatAlgos.patInputFiles_cff import filesRelValProdTTbarGENSIMRECO
-#process.source.fileNames = filesRelValProdTTbarGENSIMRECO
+#from PhysicsTools.PatAlgos.patInputFiles_cff import filesRelValTTbarGENSIMRECO
+#process.source.fileNames = filesRelValTTbarGENSIMRECO
 #                                         ##
 process.maxEvents.input = 10
 #                                         ##
@@ -157,4 +172,4 @@ process.maxEvents.input = 10
 #                                         ##
 process.out.fileName = 'patTuple_addBTagging.root'
 #                                         ##
-#   process.options.wantSummary = False   ##  (to suppress the long output at the end of the job)
+process.options.wantSummary = False   ##  (to suppress the long output at the end of the job)

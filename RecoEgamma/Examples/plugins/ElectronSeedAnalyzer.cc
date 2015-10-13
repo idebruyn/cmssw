@@ -34,7 +34,7 @@
 #include "TrackingTools/MaterialEffects/interface/PropagatorWithMaterial.h"
 
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
@@ -184,7 +184,7 @@ void ElectronSeedAnalyzer::analyze( const edm::Event& e, const edm::EventSetup& 
 {
   //Retrieve tracker topology from geometry
   edm::ESHandle<TrackerTopology> tTopo;
-  iSetup.get<IdealGeometryRecord>().get(tTopo);
+  iSetup.get<TrackerTopologyRcd>().get(tTopo);
 
 
 
@@ -396,9 +396,9 @@ void ElectronSeedAnalyzer::analyze( const edm::Event& e, const edm::EventSetup& 
 
   edm::Handle<edm::HepMCProduct> HepMCEvt;
   // this one is empty branch in current test files
-  //e.getByLabel("VtxSmeared", "", HepMCEvt);
+  //e.getByLabel("generatorSmeared", "", HepMCEvt);
   //e.getByLabel("source", "", HepMCEvt);
-  e.getByLabel("generator", "", HepMCEvt);
+  e.getByLabel("generatorSmeared", "", HepMCEvt);
 
   const HepMC::GenEvent* MCEvt = HepMCEvt->GetEvent();
   HepMC::GenParticle* genPc=0;

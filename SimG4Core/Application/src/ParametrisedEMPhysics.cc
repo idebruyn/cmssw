@@ -22,6 +22,8 @@
 #include "G4RegionStore.hh"
 #include "G4Electron.hh"
 #include "G4Positron.hh"
+#include "G4MuonMinus.hh"
+#include "G4MuonPlus.hh"
 #include "G4PionMinus.hh"
 #include "G4PionPlus.hh"
 #include "G4KaonMinus.hh"
@@ -29,19 +31,44 @@
 #include "G4Proton.hh"
 #include "G4AntiProton.hh"
 
+#include "G4MuonNuclearProcess.hh"
+#include "G4MuonVDNuclearModel.hh"
+
+//#include "G4EmParameters.hh"
 #include "G4EmProcessOptions.hh"
 #include "G4PhysicsListHelper.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UAtomicDeexcitation.hh"
 #include "G4LossTableManager.hh"
 
-ParametrisedEMPhysics::ParametrisedEMPhysics(std::string name, const edm::ParameterSet & p) 
+ParametrisedEMPhysics::ParametrisedEMPhysics(std::string name, 
+					     const edm::ParameterSet & p) 
   : G4VPhysicsConstructor(name), theParSet(p) 
 {
-  theEcalEMShowerModel = 0;
-  theEcalHadShowerModel = 0;
-  theHcalEMShowerModel = 0;
-  theHcalHadShowerModel = 0;
+  theEcalEMShowerModel = nullptr;
+  theEcalHadShowerModel = nullptr;
+  theHcalEMShowerModel = nullptr;
+  theHcalHadShowerModel = nullptr;
+
+  // will be uncommented for Geant4 10.1
+  // bremsstrahlung threshold and EM verbosity
+  /*
+  G4EmParameters* param = G4EmParameters::Instance();
+  G4int verb = theParSet.getUntrackedParameter<int>("Verbosity",0);
+  param->SetVerbose(verb);
+
+  G4double bremth = theParSet.getParameter<double>("G4BremsstrahlungThreshold")*GeV; 
+  param->SetBremsstrahlungTh(bremth);
+
+  bool fluo = theParSet.getParameter<bool>("FlagFluo");
+  param->SetFluo(fluo);
+
+  edm::LogInfo("SimG4CoreApplication") 
+    << "ParametrisedEMPhysics::ConstructProcess: bremsstrahlung threshold Eth= "
+    << bremth/GeV << " GeV" 
+    << "\n                                         verbosity= " << verb
+    << "  fluoFlag: " << fluo; 
+  */
 }
 
 ParametrisedEMPhysics::~ParametrisedEMPhysics() {
@@ -215,4 +242,14 @@ void ParametrisedEMPhysics::ConstructProcess() {
     G4LossTableManager::Instance()->SetAtomDeexcitation(de);
     de->SetFluo(true);
   }
+  // enable muon nuclear (valid option for Geant4 10.0pX only)
+  bool munuc = theParSet.getParameter<bool>("FlagMuNucl");
+  //bool munuc = false;
+  if(munuc) {
+    G4MuonNuclearProcess* muNucProcess = new G4MuonNuclearProcess();
+    muNucProcess->RegisterMe(new G4MuonVDNuclearModel());
+    ph->RegisterProcess(muNucProcess, G4MuonPlus::MuonPlus());
+    ph->RegisterProcess(muNucProcess, G4MuonMinus::MuonMinus());
+  }
+
 }

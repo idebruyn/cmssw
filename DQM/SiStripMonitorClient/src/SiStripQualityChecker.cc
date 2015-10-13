@@ -10,7 +10,7 @@
 
 #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
 #include "DQM/SiStripMonitorClient/interface/SiStripUtility.h"
@@ -98,9 +98,9 @@ void SiStripQualityChecker::bookStatus(DQMStore* dqm_store) {
 	 it != SubDetFolderMap.end(); it++) {
       ibin++;
       std::string det = it->first;
-      DetFractionReportMap->setBinLabel(ibin,det);
-      SToNReportMap->setBinLabel(ibin,det);
-      SummaryReportMap->setBinLabel(ibin,det);
+      DetFractionReportMap->setBinLabel(ibin,it->second);
+      SToNReportMap->setBinLabel(ibin,it->second);
+      SummaryReportMap->setBinLabel(ibin,it->second);
       
       SubDetMEs local_mes;
       
@@ -231,7 +231,10 @@ void SiStripQualityChecker::fillSubDetStatus(DQMStore* dqm_store,
        ic != subDirVec.end(); ic++) {
     std::string dname = (*ic);
     if (dname.find("BadModuleList") != std::string::npos) continue;
+    if (dname.find("ring") !=std::string::npos) continue;
     std::vector<MonitorElement*> meVec;
+    if (dname.find("ring") !=std::string::npos) continue;
+    
     ybin++;
     dqm_store->cd((*ic));
     meVec = dqm_store->getContents((*ic));
@@ -409,7 +412,7 @@ void SiStripQualityChecker::fillFaultyModuleStatus(DQMStore* dqm_store, const ed
 
   //Retrieve tracker topology from geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;
-  eSetup.get<IdealGeometryRecord>().get(tTopoHandle);
+  eSetup.get<TrackerTopologyRcd>().get(tTopoHandle);
   const TrackerTopology* const tTopo = tTopoHandle.product();
 
   dqm_store->cd();

@@ -4,38 +4,39 @@ from SLHCUpgradeSimulations.Configuration.customise_mixing import customise_NoCr
 from SLHCUpgradeSimulations.Configuration.phase1TkCustoms import customise as customisePhase1Tk
 from SLHCUpgradeSimulations.Configuration.HCalCustoms import customise_HcalPhase1, customise_HcalPhase0
 
-import SLHCUpgradeSimulations.Configuration.aging as aging
+from SLHCUpgradeSimulations.Configuration.gemCustoms import customise2019 as customise_gem2019
+from SLHCUpgradeSimulations.Configuration.gemCustoms import customise2023 as customise_gem2023
+from SLHCUpgradeSimulations.Configuration.me0Customs import customise as customise_me0
+from SLHCUpgradeSimulations.Configuration.rpcCustoms import customise as customise_rpc
+from SLHCUpgradeSimulations.Configuration.fixMissingUpgradeGTPayloads import fixRPCConditions
 
+import SLHCUpgradeSimulations.Configuration.aging as aging
 
 def cust_2017(process):
     process=customisePostLS1(process)
     process=customisePhase1Tk(process)
     #process=customise_HcalPhase0(process)
-    #process=fixRPCConditions(process)
     return process
 
 def cust_2019(process):
     process=customisePostLS1(process)
     process=customisePhase1Tk(process)
     process=customise_HcalPhase1(process)
+    return process
+
+def cust_2019WithGem(process):
+    process=cust_2019(process)
+    process=customise_gem2019(process)
+    return process
+
+def cust_2023MuonOnly(process):
+    process=customise_gem2023(process)
+    process=customise_rpc(process)
     process=fixRPCConditions(process)
     return process
 
 def noCrossing(process):
     process=customise_NoCrossing(process)
-    return process
-
-
-def fixRPCConditions(process):
-    if not hasattr(process.GlobalTag,'toGet'):
-        process.GlobalTag.toGet=cms.VPSet()
-    process.GlobalTag.toGet.extend( cms.VPSet(
-        cms.PSet(record = cms.string("RPCStripNoisesRcd"),
-                 tag = cms.string("RPCStripNoise_upscope_mc_v2"),
-                 connect = cms.untracked.string("frontier://FrontierProd/CMS_COND_31X_RPC")
-                 )
-        )
-                                    )
     return process
 
 ##### clone aging.py here 

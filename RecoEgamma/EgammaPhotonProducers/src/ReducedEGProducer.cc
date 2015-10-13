@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <unordered_set>
 
 // Framework
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -43,59 +44,74 @@
 
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
 
+namespace std {
+  template<> 
+  struct hash<DetId> {
+    size_t operator()(const DetId& id) const {
+      return std::hash<uint32_t>()(id.rawId());
+    }
+  };  
+}
+
 ReducedEGProducer::ReducedEGProducer(const edm::ParameterSet& config) :
+  photonT_(consumes<reco::PhotonCollection>(config.getParameter<edm::InputTag>("photons"))),
+  gsfElectronT_(consumes<reco::GsfElectronCollection>(config.getParameter<edm::InputTag>("gsfElectrons"))),
+  conversionT_(consumes<reco::ConversionCollection>(config.getParameter<edm::InputTag>("conversions"))),
+  singleConversionT_(consumes<reco::ConversionCollection>(config.getParameter<edm::InputTag>("singleConversions"))),
+  barrelEcalHits_(consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("barrelEcalHits"))),
+  endcapEcalHits_(consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("endcapEcalHits"))),
+  preshowerEcalHits_(consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("preshowerEcalHits"))),
+  photonPfCandMapT_(consumes<edm::ValueMap<std::vector<reco::PFCandidateRef> > >(config.getParameter<edm::InputTag>("photonsPFValMap"))),  
+  gsfElectronPfCandMapT_(consumes<edm::ValueMap<std::vector<reco::PFCandidateRef> > >(config.getParameter<edm::InputTag>("gsfElectronsPFValMap"))),
+  //output collections    
+  outPhotons_("reducedGedPhotons"),
+  outPhotonCores_("reducedGedPhotonCores"),
+  outGsfElectrons_("reducedGedGsfElectrons"),
+  outGsfElectronCores_("reducedGedGsfElectronCores"),
+  outConversions_("reducedConversions"),
+  outSingleConversions_("reducedSingleLegConversions"),
+  outSuperClusters_("reducedSuperClusters"),
+  outEBEEClusters_("reducedEBEEClusters"),
+  outESClusters_("reducedESClusters"),
+  outEBRecHits_("reducedEBRecHits"),
+  outEERecHits_("reducedEERecHits"),
+  outESRecHits_("reducedESRecHits"),
+  outPhotonPfCandMap_("reducedPhotonPfCandMap"),
+  outGsfElectronPfCandMap_("reducedGsfElectronPfCandMap"),
+  outPhotonIds_(config.getParameter<std::vector<std::string> >("photonIDOutput")),
+  outGsfElectronIds_(config.getParameter<std::vector<std::string> >("gsfElectronIDOutput")),
+  outPhotonPFClusterIsos_(config.getParameter<std::vector<std::string> >("photonPFClusterIsoOutput")),
+  outGsfElectronPFClusterIsos_(config.getParameter<std::vector<std::string> >("gsfElectronPFClusterIsoOutput")),
   keepPhotonSel_(config.getParameter<std::string>("keepPhotons")),
   slimRelinkPhotonSel_(config.getParameter<std::string>("slimRelinkPhotons")),
   relinkPhotonSel_(config.getParameter<std::string>("relinkPhotons")),
   keepGsfElectronSel_(config.getParameter<std::string>("keepGsfElectrons")),
   slimRelinkGsfElectronSel_(config.getParameter<std::string>("slimRelinkGsfElectrons")),
   relinkGsfElectronSel_(config.getParameter<std::string>("relinkGsfElectrons"))
-{
-
-
-  photonT_ = consumes<reco::PhotonCollection>(config.getParameter<edm::InputTag>("photons"));
-  gsfElectronT_ = consumes<reco::GsfElectronCollection>(config.getParameter<edm::InputTag>("gsfElectrons"));
-  conversionT_ = consumes<reco::ConversionCollection>(config.getParameter<edm::InputTag>("conversions"));
-  singleConversionT_ = consumes<reco::ConversionCollection>(config.getParameter<edm::InputTag>("singleConversions"));
-  
-  barrelEcalHits_   = 
-    consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("barrelEcalHits"));
-  endcapEcalHits_   = 
-    consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("endcapEcalHits"));
-  preshowerEcalHits_   = 
-    consumes<EcalRecHitCollection>(config.getParameter<edm::InputTag>("preshowerEcalHits"));
-
-  photonPfCandMapT_ = consumes<edm::ValueMap<std::vector<reco::PFCandidateRef> > >(config.getParameter<edm::InputTag>("photonsPFValMap"));
-  gsfElectronPfCandMapT_ = consumes<edm::ValueMap<std::vector<reco::PFCandidateRef> > >(config.getParameter<edm::InputTag>("gsfElectronsPFValMap"));
-
-  std::vector<edm::InputTag> photonidinputs(config.getParameter<std::vector<edm::InputTag> >("photonIDSources"));
-  for (edm::InputTag &tag : photonidinputs) {
+{  
+  const std::vector<edm::InputTag>& photonidinputs = 
+    config.getParameter<std::vector<edm::InputTag> >("photonIDSources");
+  for (const edm::InputTag &tag : photonidinputs) {
     photonIdTs_.emplace_back(consumes<edm::ValueMap<bool> >(tag));
   }
   
-  std::vector<edm::InputTag> gsfelectronidinputs(config.getParameter<std::vector<edm::InputTag> >("gsfElectronIDSources"));
-  for (edm::InputTag &tag : gsfelectronidinputs) {
+  const std::vector<edm::InputTag>& gsfelectronidinputs = 
+    config.getParameter<std::vector<edm::InputTag> >("gsfElectronIDSources");
+  for (const edm::InputTag &tag : gsfelectronidinputs) {
     gsfElectronIdTs_.emplace_back(consumes<edm::ValueMap<float> >(tag));
   }  
   
-  //output collections    
-  outPhotons_ = "reducedGedPhotons";
-  outPhotonCores_ = "reducedGedPhotonCores";
-  outGsfElectrons_ = "reducedGedGsfElectrons";
-  outGsfElectronCores_ = "reducedGedGsfElectronCores";
-  outConversions_ = "reducedConversions";
-  outSingleConversions_ = "reducedSingleLegConversions";
-  outSuperClusters_ = "reducedSuperClusters";
-  outEBEEClusters_ = "reducedEBEEClusters";
-  outESClusters_ = "reducedESClusters";
-  outEBRecHits_ = "reducedEBRecHits";
-  outEERecHits_ = "reducedEERecHits";
-  outESRecHits_ = "reducedESRecHits";
-  outPhotonPfCandMap_ = "reducedPhotonPfCandMap";
-  outGsfElectronPfCandMap_ = "reducedGsfElectronPfCandMap";
-  outPhotonIds_ = config.getParameter<std::vector<std::string> >("photonIDOutput");
-  outGsfElectronIds_ = config.getParameter<std::vector<std::string> >("gsfElectronIDOutput");
-  
+  const std::vector<edm::InputTag>&  photonpfclusterisoinputs = 
+    config.getParameter<std::vector<edm::InputTag> >("photonPFClusterIsoSources");
+  for (const edm::InputTag &tag : photonpfclusterisoinputs) {
+    photonPFClusterIsoTs_.emplace_back(consumes<edm::ValueMap<float> >(tag));
+  }  
+
+  const std::vector<edm::InputTag>& gsfelectronpfclusterisoinputs = 
+    config.getParameter<std::vector<edm::InputTag> >("gsfElectronPFClusterIsoSources");
+  for (const edm::InputTag &tag : gsfelectronpfclusterisoinputs) {
+    gsfElectronPFClusterIsoTs_.emplace_back(consumes<edm::ValueMap<float> >(tag));
+  }  
   
   produces< reco::PhotonCollection >(outPhotons_);
   produces< reco::PhotonCoreCollection >(outPhotonCores_);
@@ -117,7 +133,12 @@ ReducedEGProducer::ReducedEGProducer(const edm::ParameterSet& config) :
   for (const std::string &outid : outGsfElectronIds_) {
     produces< edm::ValueMap<float> >(outid);   
   }  
-
+  for (const std::string &outid : outPhotonPFClusterIsos_) {
+    produces< edm::ValueMap<float> >(outid);   
+  }
+  for (const std::string &outid : outGsfElectronPFClusterIsos_) {
+    produces< edm::ValueMap<float> >(outid);   
+  }
 }
 
 ReducedEGProducer::~ReducedEGProducer() 
@@ -169,6 +190,16 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
     theEvent.getByToken(gsfElectronIdTs_[itok],gsfElectronIdHandles[itok]);
   }  
   
+  std::vector<edm::Handle<edm::ValueMap<float> > > gsfElectronPFClusterIsoHandles(gsfElectronPFClusterIsoTs_.size());
+  for (unsigned int itok=0; itok<gsfElectronPFClusterIsoTs_.size(); ++itok) {
+    theEvent.getByToken(gsfElectronPFClusterIsoTs_[itok],gsfElectronPFClusterIsoHandles[itok]);
+  }  
+  
+  std::vector<edm::Handle<edm::ValueMap<float> > > photonPFClusterIsoHandles(photonPFClusterIsoTs_.size());
+  for (unsigned int itok=0; itok<photonPFClusterIsoTs_.size(); ++itok) {
+    theEvent.getByToken(photonPFClusterIsoTs_[itok],photonPFClusterIsoHandles[itok]);
+  }  
+  
   edm::ESHandle<CaloTopology> theCaloTopology;
   theEventSetup.get<CaloTopologyRecord>().get(theCaloTopology);  
   const CaloTopology *caloTopology = & (*theCaloTopology);  
@@ -198,7 +229,17 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
   for (unsigned int iid=0; iid<gsfElectronIdHandles.size(); ++iid) {
     gsfElectronIds.emplace_back(new edm::ValueMap<float>);
   }
-  
+
+  std::vector<std::auto_ptr<edm::ValueMap<float> > > photonPFClusterIsos;
+  for (unsigned int iid=0; iid<photonPFClusterIsoHandles.size(); ++iid) {
+    photonPFClusterIsos.emplace_back(new edm::ValueMap<float>);
+  }
+
+  std::vector<std::auto_ptr<edm::ValueMap<float> > > gsfElectronPFClusterIsos;
+  for (unsigned int iid=0; iid<gsfElectronPFClusterIsoHandles.size(); ++iid) {
+    gsfElectronPFClusterIsos.emplace_back(new edm::ValueMap<float>);
+  }
+ 
   //maps to collection indices of output objects
   std::map<reco::PhotonCoreRef, unsigned int> photonCoreMap;
   std::map<reco::GsfElectronCoreRef, unsigned int> gsfElectronCoreMap;
@@ -207,17 +248,19 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
   std::map<reco::SuperClusterRef, unsigned int> superClusterMap;
   std::map<reco::CaloClusterPtr, unsigned int> ebeeClusterMap;
   std::map<reco::CaloClusterPtr, unsigned int> esClusterMap;
-  std::set<DetId> rechitMap;
+  std::unordered_set<DetId> rechitMap;
   
-  std::set<unsigned int> superClusterFullRelinkMap;
+  std::unordered_set<unsigned int> superClusterFullRelinkMap;
   
   //vectors for pfcandidate valuemaps
-  std::vector<std::vector<reco::PFCandidateRef>> pfCandIsoPairVecPho;  
-  std::vector<std::vector<reco::PFCandidateRef>> pfCandIsoPairVecEle;
+  std::vector<std::vector<reco::PFCandidateRef> > pfCandIsoPairVecPho;  
+  std::vector<std::vector<reco::PFCandidateRef> > pfCandIsoPairVecEle;
   
   //vectors for id valuemaps
   std::vector<std::vector<bool> > photonIdVals(photonIds.size());
   std::vector<std::vector<float> > gsfElectronIdVals(gsfElectronIds.size());
+  std::vector<std::vector<float> > photonPFClusterIsoVals(photonPFClusterIsos.size());
+  std::vector<std::vector<float> > gsfElectronPFClusterIsoVals(gsfElectronPFClusterIsos.size());
   
   //loop over photons and fill maps
   for (unsigned int ipho=0; ipho<photonHandle->size(); ++ipho) {
@@ -236,6 +279,10 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
     //fill photon id valuemap vectors
     for (unsigned int iid=0; iid<photonIds.size(); ++iid) {
       photonIdVals[iid].push_back( (*photonIdHandles[iid])[photonref] );
+    }    
+
+    for (unsigned int iid=0; iid<photonPFClusterIsos.size(); ++iid) {
+      photonPFClusterIsoVals[iid].push_back( (*photonPFClusterIsoHandles[iid])[photonref] );
     }    
     
     const reco::PhotonCoreRef &photonCore = photon.photonCore();
@@ -304,6 +351,10 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
     //fill electron id valuemap vectors
     for (unsigned int iid=0; iid<gsfElectronIds.size(); ++iid) {
       gsfElectronIdVals[iid].push_back( (*gsfElectronIdHandles[iid])[gsfElectronref] );
+    }    
+
+    for (unsigned int iid=0; iid<gsfElectronPFClusterIsos.size(); ++iid) {
+      gsfElectronPFClusterIsoVals[iid].push_back( (*gsfElectronPFClusterIsoHandles[iid])[gsfElectronref] );
     }    
 
     const reco::GsfElectronCoreRef &gsfElectronCore = gsfElectron.core();
@@ -667,7 +718,21 @@ void ReducedEGProducer::produce(edm::Event& theEvent, const edm::EventSetup& the
     fillerGsfElectronId.fill();
     theEvent.put(gsfElectronIds[iid],outGsfElectronIds_[iid]);
   }  
-  
+
+  //photon iso value maps
+  for (unsigned int iid=0; iid<photonPFClusterIsos.size(); ++iid) {
+    edm::ValueMap<float>::Filler fillerPhotonPFClusterIso(*photonPFClusterIsos[iid]);
+    fillerPhotonPFClusterIso.insert(outPhotonHandle,photonPFClusterIsoVals[iid].begin(),photonPFClusterIsoVals[iid].end());
+    fillerPhotonPFClusterIso.fill();
+    theEvent.put(photonPFClusterIsos[iid],outPhotonPFClusterIsos_[iid]);
+  }
+  //electron iso value maps
+  for (unsigned int iid=0; iid<gsfElectronPFClusterIsos.size(); ++iid) {
+    edm::ValueMap<float>::Filler fillerGsfElectronPFClusterIso(*gsfElectronPFClusterIsos[iid]);
+    fillerGsfElectronPFClusterIso.insert(outGsfElectronHandle,gsfElectronPFClusterIsoVals[iid].begin(),gsfElectronPFClusterIsoVals[iid].end());
+    fillerGsfElectronPFClusterIso.fill();
+    theEvent.put(gsfElectronPFClusterIsos[iid],outGsfElectronPFClusterIsos_[iid]);
+  }  
 }
 
 

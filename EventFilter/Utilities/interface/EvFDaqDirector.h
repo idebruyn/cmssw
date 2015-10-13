@@ -31,6 +31,11 @@ class StreamID;
 class InputFile;
 class InputChunk;
 
+namespace edm {
+  class PathsAndConsumesOfModulesBase;
+  class ProcessContext;
+}
+
 namespace Json{
   class Value;
 }
@@ -48,6 +53,7 @@ namespace evf{
       explicit EvFDaqDirector( const edm::ParameterSet &pset, edm::ActivityRegistry& reg );
       ~EvFDaqDirector();
       void preallocate(edm::service::SystemBounds const& bounds);
+      void preBeginJob(edm::PathsAndConsumesOfModulesBase const&, edm::ProcessContext const&);
       void preBeginRun(edm::GlobalContext const& globalContext);
       void postEndRun(edm::GlobalContext const& globalContext);
       void preGlobalEndLumi(edm::GlobalContext const& globalContext);
@@ -85,13 +91,9 @@ namespace evf{
       void removeFile(unsigned int ls, unsigned int index);
       void removeFile(std::string );
 
-      FileStatus updateFuLock(unsigned int& ls, std::string& nextFile, uint32_t& fsize);
+      FileStatus updateFuLock(unsigned int& ls, std::string& nextFile, uint32_t& fsize, uint64_t& lockWaitTime);
       void tryInitializeFuLockFile();
       unsigned int getRunNumber() const { return run_; }
-      unsigned int getJumpLS() const { return jumpLS_; }
-      unsigned int getJumpIndex() const { return jumpIndex_; }
-      std::string getJumpFilePath() const { return bu_run_dir_ + "/" + fffnaming::inputRawFileName(getRunNumber(),jumpLS_,jumpIndex_); }
-      bool getTestModeNoBuilderUnit() { return testModeNoBuilderUnit_;}
       FILE * maybeCreateAndLockFileHeadForStream(unsigned int ls, std::string &stream);
       void unlockAndCloseMergeStream();
       void lockInitLock();
@@ -105,13 +107,15 @@ namespace evf{
       void lockFULocal2();
       void unlockFULocal2();
       void createRunOpendirMaybe();
+      void createProcessingNotificationMaybe() const;
       int readLastLSEntry(std::string const& file);
       void setDeleteTracking( std::mutex* fileDeleteLock,std::list<std::pair<int,InputFile*>> *filesToDelete) {
         fileDeleteLockPtr_=fileDeleteLock;
         filesToDeletePtr_ = filesToDelete;
       }
-      void checkTransferSystemPSet();
+      void checkTransferSystemPSet(edm::ProcessContext const& pc);
       std::string getStreamDestinations(std::string const& stream) const;
+      bool emptyLumisectionMode() const {return emptyLumisectionMode_;}
 
 
     private:
@@ -127,7 +131,6 @@ namespace evf{
       std::string eorFileName() const;
       int getNFilesFromEoLS(std::string BUEoLSFile);
 
-      bool testModeNoBuilderUnit_;
       std::string base_dir_;
       std::string bu_base_dir_;
       bool directorBu_;
@@ -136,6 +139,8 @@ namespace evf{
       bool requireTSPSet_;
       std::string selectedTransferMode_;
       std::string hltSourceDirectory_;
+      unsigned int fuLockPollInterval_;
+      bool emptyLumisectionMode_;
 
       std::string hostname_;
       std::string run_string_;
@@ -160,7 +165,6 @@ namespace evf{
       DirManager dirManager_;
 
       unsigned long previousFileSize_;
-      unsigned int jumpLS_, jumpIndex_;
 
       struct flock bu_w_flk;
       struct flock bu_r_flk;

@@ -112,8 +112,9 @@ std::string support::getQualifiedName(const clang::NamedDecl &d) {
 bool support::isSafeClassName(const std::string &cname) {
 
   static const std::vector<std::string> names = {
-    "std::atomic",
-    "struct std::atomic",
+    "atomic<",
+    "std::atomic<",
+    "struct std::atomic<",
     "std::__atomic_",
     "std::mutex",
     "std::recursive_mutex",
@@ -125,8 +126,12 @@ bool support::isSafeClassName(const std::string &cname) {
     "class boost::thread_specific_ptr",
     "tbb::",
     "class tbb::",
+    "concurrent_unordered_map",
+    "class concurrent_unordered_map",
     "edm::AtomicPtrCache",
-    "class edm::AtomicPtrCache"
+    "class edm::AtomicPtrCache",
+    "edm::InputTag",
+    "class edm::InputTag",
     "std::once_flag",
     "struct std::once_flag",
     "boost::<anonymous namespace>::extents",

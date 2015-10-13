@@ -21,6 +21,7 @@
 #include "DQM/HcalMonitorClient/interface/HcalDetDiagNoiseMonitorClient.h"
 #include "DQM/HcalMonitorClient/interface/HcalDetDiagTimingClient.h"
 #include "DQM/HcalMonitorClient/interface/HcalCoarsePedestalClient.h"
+#include "DQM/HcalMonitorClient/interface/ZDCMonitorClient.h"
 
 #include "FWCore/Framework/interface/Run.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
@@ -96,7 +97,7 @@ HcalMonitorClient::HcalMonitorClient(const edm::ParameterSet& ps)
 
   // Add all relevant clients
   clients_.clear();
-  clients_.reserve(14); // any reason to reserve ahead of time?
+  clients_.reserve(15); // any reason to reserve ahead of time?
   summaryClient_=0;
 
   clients_.push_back(new HcalBaseDQClient((std::string)"HcalMonitorModule",ps));
@@ -128,6 +129,8 @@ HcalMonitorClient::HcalMonitorClient(const edm::ParameterSet& ps)
     clients_.push_back(new HcalDetDiagTimingClient((std::string)"DetDiagTimingMonitor",ps));
  if (find(enabledClients_.begin(), enabledClients_.end(),"CoarsePedestalMonitor")!=enabledClients_.end())
     clients_.push_back(new HcalCoarsePedestalClient((std::string)"CoarsePedestalMonitor",ps));
+ if (find(enabledClients_.begin(), enabledClients_.end(),"ZDCMonitor")!=enabledClients_.end())
+    clients_.push_back(new ZDCMonitorClient((std::string)"ZDCMonitor",ps));
 
   if (find(enabledClients_.begin(), enabledClients_.end(),"Summary")!=enabledClients_.end())
     summaryClient_ = new HcalSummaryClient((std::string)"ReportSummaryClient",ps);
@@ -174,11 +177,15 @@ void HcalMonitorClient::beginRun(const edm::Run& r, const edm::EventSetup& c)
 
   // Let's get the channel status quality
   edm::ESHandle<HcalTopology> topo;
-  c.get<IdealGeometryRecord>().get(topo);
+  c.get<HcalRecNumberingRecord>().get(topo);
 
   edm::ESHandle<HcalChannelQuality> p;
   c.get<HcalChannelQualityRcd>().get("withTopo",p);
   chanquality_= p.product();
+//  if (!chanquality_->topo()) chanquality_->setTopo(topo.product());
+  hctopo_ = topo.product();
+  for ( unsigned int i=0; i<clients_.size();++i ) 
+    clients_[i]->setTopo(hctopo_);
  
   // Find only channels with non-zero quality, and add them to badchannelmap
   std::vector<DetId> mydetids = chanquality_->getAllChannels();
@@ -534,7 +541,7 @@ void HcalMonitorClient::PlotPedestalValues(const HcalDbService& cond)
 	      for (int phi=0;phi<phibins;++phi)
 		{
 		  iphi=phi+1;
-		  if (!validDetId((HcalSubdetector)(subdet), ieta, iphi, depth+1)) continue;
+		  if (!(hctopo_->validDetId((HcalSubdetector)(subdet), ieta, iphi, depth+1))) continue;
 		  HcalDetId detid((HcalSubdetector)(subdet), ieta, iphi, depth+1);
 		  ADC_ped=0;
 		  ADC_width=0;
@@ -543,7 +550,7 @@ void HcalMonitorClient::PlotPedestalValues(const HcalDbService& cond)
 		  calibs_= cond.getHcalCalibrations(detid);  
 		  const HcalPedestalWidth* pedw = cond.getPedestalWidth(detid);
 		  const HcalQIECoder* channelCoder_ = cond.getHcalCoder(detid);
-		  const HcalQIEShape* shape_ = cond.getHcalShape(channelCoder_); 
+		  const HcalQIEShape* shape_ = cond.getHcalShape(channelCoder_);
 
 		  // Loop over capIDs
 		  for (unsigned int capid=0;capid<4;++capid)

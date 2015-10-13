@@ -36,10 +36,11 @@ from Alignment.CommonAlignmentProducer.ALCARECOTkAlBeamHalo_Output_cff import *
 ###############################################################
 # ECAL Calibration
 ###############################################################
-# ECAL calibration with phi symmetry 
-from Calibration.EcalAlCaRecoProducers.ALCARECOEcalCalPhiSym_Output_cff import *
 # ECAL calibration with isol. electrons
 from Calibration.EcalAlCaRecoProducers.ALCARECOEcalCalIsolElectron_Output_cff import *
+from Calibration.EcalAlCaRecoProducers.ALCARECOEcalUncalIsolElectron_Output_cff import *
+from Calibration.EcalAlCaRecoProducers.ALCARECOEcalRecalIsolElectron_Output_cff import *
+
 # The following paths are obsoleted since pi0 calibration
 # has a HLT path (argiro,20080314 )
 # ECAL calibration with pi0 
@@ -60,9 +61,12 @@ from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalGammaJet_Output_cff import
 # HCAL calibration with isolated tracks
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIsoTrk_Output_cff import *
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIsoTrkNoHLT_Output_cff import *
+# HCAL calibration with iterative phi sym                                                                                       
+from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIterativePhiSym_Output_cff import *
 # HCAL calibration with min.bias
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalMinBias_Output_cff import *
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalMinBiasHI_Output_cff import *
+from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalPedestal_Output_cff import *
 # HCAL calibration with Zmuu (HO)
 #  include "Calibration/HcalAlCaRecoProducers/data/ALCARECOHcalCalZMuMu_Output.cff"
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalHO_Output_cff import *
@@ -103,6 +107,24 @@ from Calibration.TkAlCaRecoProducers.ALCARECOPromptCalibProdSiStrip_Output_cff i
 from Calibration.TkAlCaRecoProducers.ALCARECOPromptCalibProdSiStripGains_Output_cff import *
 
 from Calibration.TkAlCaRecoProducers.ALCARECOSiStripPCLHistos_Output_cff import *
+from Alignment.CommonAlignmentProducer.ALCARECOPromptCalibProdSiPixelAli_Output_cff import *
 
 # stream for the LumiPixels workflow
 from Calibration.TkAlCaRecoProducers.ALCARECOLumiPixels_Output_cff import *
+from Calibration.TkAlCaRecoProducers.ALCARECOLumiPixelsMinBias_Output_cff import *
+
+###############################################################
+# hotline skim workflows
+###############################################################
+from Calibration.Hotline.hotlineSkims_Output_cff import *
+
+ALCARECOEventContent = cms.PSet(
+    outputCommands = cms.untracked.vstring('drop *',
+        'keep edmTriggerResults_*_*_*'),
+    splitLevel = cms.untracked.int32(0),
+    eventAutoFlushCompressedSize=cms.untracked.int32(5*1024*1024)
+)
+
+
+
+ALCARECOEventContent.outputCommands.append('drop *_MEtoEDMConverter_*_*')

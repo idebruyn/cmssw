@@ -140,6 +140,7 @@ namespace evf{
       void preStreamEarlyTermination(edm::StreamContext const&, edm::TerminationOrigin);
       void preGlobalEarlyTermination(edm::GlobalContext const&, edm::TerminationOrigin);
       void preSourceEarlyTermination(edm::TerminationOrigin);
+      void setExceptionDetected(unsigned int ls);
 
       //this is still needed for use in special functions like DQM which are in turn framework services
       void setMicroState(MicroStateService::Microstate);
@@ -149,7 +150,15 @@ namespace evf{
       void accumulateFileSize(unsigned int lumi, unsigned long fileSize);
       void startedLookingForFile();
       void stoppedLookingForFile(unsigned int lumi);
-      unsigned int getEventsProcessedForLumi(unsigned int lumi);
+      void reportLockWait(unsigned int ls, double waitTime, unsigned int lockCount);
+      unsigned int getEventsProcessedForLumi(unsigned int lumi, bool * abortFlag=nullptr);
+      bool getAbortFlagForLumi(unsigned int lumi);
+      bool shouldWriteFiles(unsigned int lumi, unsigned int* proc=nullptr)
+      {
+        unsigned int processed = getEventsProcessedForLumi(lumi);
+        if (proc) *proc = processed;
+        return !getAbortFlagForLumi(lumi) && (processed || emptyLumisectionMode_);
+      }
       std::string getRunDirName() const { return runDirectory_.stem().string(); }
 
     private:
@@ -226,9 +235,10 @@ namespace evf{
       //helpers for source statistics:
       std::map<unsigned int, unsigned long> accuSize_;
       std::vector<double> leadTimes_;
+      std::map<unsigned int, std::pair<double,unsigned int>> lockStatsDuringLumi_;
 
       //for output module
-      std::map<unsigned int, unsigned int> processedEventsPerLumi_;
+      std::map<unsigned int, std::pair<unsigned int,bool>> processedEventsPerLumi_;
 
       //flag used to block EOL until event count is picked up by caches (not certain that this is really an issue)
       //to disable this behavior, set #ATOMIC_LEVEL 0 or 1 in DataPoint.h
@@ -254,6 +264,7 @@ namespace evf{
       std::atomic<bool> monInit_;
       bool exception_detected_ = false;
       std::vector<unsigned int> exceptionInLS_;
+      bool emptyLumisectionMode_ = false;
     };
 
 }

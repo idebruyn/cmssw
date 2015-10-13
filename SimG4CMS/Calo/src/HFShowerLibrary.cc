@@ -110,49 +110,6 @@ HFShowerLibrary::HFShowerLibrary(std::string & name, const DDCompactView & cpv,
 			   << probMax << "  Back propagation of light prob. "
                            << backProb ;
   
-  G4String attribute = "ReadOutName";
-  G4String value     = name;
-  DDSpecificsFilter filter;
-  DDValue           ddv(attribute,value,0);
-  filter.setCriteria(ddv,DDSpecificsFilter::equals);
-  DDFilteredView fv(cpv);
-  fv.addFilter(filter);
-  bool dodet = fv.firstChild();
-  if (dodet) {
-    DDsvalues_type sv(fv.mergedSpecifics());
-
-    //Radius (minimum and maximum)
-    int nR     = -1;
-    std::vector<double> rTable = getDDDArray("rTable",sv,nR);
-    rMin = rTable[0];
-    rMax = rTable[nR-1];
-    edm::LogInfo("HFShower") << "HFShowerLibrary: rMIN " << rMin/cm 
-			     << " cm and rMax " << rMax/cm;
-
-    //Delta phi
-    int nEta   = -1;
-    std::vector<double> etaTable = getDDDArray("etaTable",sv,nEta);
-    int nPhi   = nEta + nR - 2;
-    std::vector<double> phibin   = getDDDArray("phibin",sv,nPhi);
-    dphi       = phibin[nEta-1];
-    edm::LogInfo("HFShower") << "HFShowerLibrary: (Half) Phi Width of wedge " 
-			     << dphi/deg;
-
-    //Special Geometry parameters
-    int ngpar = 7;
-    gpar      = getDDDArray("gparHF",sv,ngpar);
-    edm::LogInfo("HFShower") << "HFShowerLibrary: " << ngpar << " gpar (cm)";
-    for (int ig=0; ig<ngpar; ig++)
-      edm::LogInfo("HFShower") << "HFShowerLibrary: gpar[" << ig << "] = "
-			       << gpar[ig]/cm << " cm";
-  } else {
-    edm::LogError("HFShower") << "HFShowerLibrary: cannot get filtered "
-			      << " view for " << attribute << " matching "
-			      << name;
-    throw cms::Exception("Unknown", "HFShowerLibrary")
-      << "cannot match " << attribute << " to " << name <<"\n";
-  }
-  
   fibre = new HFFibre(name, cpv, p);
   photo = new HFShowerPhotonCollection;
   emPDG = epPDG = gammaPDG = 0;
@@ -166,7 +123,10 @@ HFShowerLibrary::~HFShowerLibrary() {
   if (photo)  delete photo;
 }
 
-void HFShowerLibrary::initRun(G4ParticleTable * theParticleTable) {
+void HFShowerLibrary::initRun(G4ParticleTable * theParticleTable,
+			      HcalDDDSimConstants* hcons) {
+
+  if (fibre) fibre->initRun(hcons);
 
   G4String parName;
   emPDG = theParticleTable->FindParticle(parName="e-")->GetPDGEncoding();
@@ -191,6 +151,26 @@ void HFShowerLibrary::initRun(G4ParticleTable * theParticleTable) {
 			   << ", anti_nu_e = " << anuePDG << ", anti_nu_mu = " 
 			   << anumuPDG << ", anti_nu_tau = " << anutauPDG;
 #endif
+  
+  //Radius (minimum and maximum)
+  std::vector<double> rTable = hcons->getRTableHF();
+  rMin = rTable[0];
+  rMax = rTable[rTable.size()-1];
+  edm::LogInfo("HFShower") << "HFShowerLibrary: rMIN " << rMin/cm 
+                           << " cm and rMax " << rMax/cm;
+
+  //Delta phi
+  std::vector<double> phibin   = hcons->getPhiTableHF();
+  dphi       = phibin[0];
+  edm::LogInfo("HFShower") << "HFShowerLibrary: (Half) Phi Width of wedge " 
+                           << dphi/deg;
+
+  //Special Geometry parameters
+  gpar      = hcons->getGparHF();
+  edm::LogInfo("HFShower") << "HFShowerLibrary: " <<gpar.size() <<" gpar (cm)";
+  for (unsigned int ig=0; ig<gpar.size(); ig++)
+    edm::LogInfo("HFShower") << "HFShowerLibrary: gpar[" << ig << "] = "
+                             << gpar[ig]/cm << " cm";
 }
 
 
@@ -211,16 +191,40 @@ std::vector<HFShowerLibrary::Hit> HFShowerLibrary::getHits(G4Step * aStep,
   G4String      partType = track->GetDefinition()->GetParticleName();
   int           parCode  = track->GetDefinition()->GetPDGEncoding();
 
+#ifdef DebugLog
+  G4ThreeVector localPos = preStepPoint->GetTouchable()->GetHistory()->GetTopTransform().TransformPoint(hitPoint);
+  double zoff   = localPos.z() + 0.5*gpar[1];
+  //  if (zoff < 0) zoff = 0;
+  edm::LogInfo("HFShower") << "HFShowerLibrary: getHits " << partType
+                           << " of energy " << pin/GeV << " GeV"
+                           << "  dir.orts " << momDir.x() << ", " <<momDir.y()
+                           << ", " << momDir.z() << "  Pos x,y,z = "
+                           << hitPoint.x() << "," << hitPoint.y() << ","
+                           << hitPoint.z() << " (" << zoff
+                           << ")   sphi,cphi,stheta,ctheta  = " << sin(momDir.phi())
+                           << ","  << cos(momDir.phi()) << ", " << sin(momDir.theta()) 
+                           << "," << cos(momDir.theta());
+#endif
+
+  double tSlice = (postStepPoint->GetGlobalTime())/nanosecond;
+  double pin    = preStepPoint->GetTotalEnergy();
+
+  return fillHits(hitPoint,momDir,parCode,pin,ok,weight,tSlice,onlyLong);
+}
+
+std::vector<HFShowerLibrary::Hit> HFShowerLibrary::fillHits(G4ThreeVector & hitPoint,
+                               G4ThreeVector & momDir,
+                               int parCode, double pin, bool & ok,
+                               double weight, double tSlice,bool onlyLong) {
+
   std::vector<HFShowerLibrary::Hit> hit;
   ok = false;
   if (parCode == pi0PDG || parCode == etaPDG || parCode == nuePDG ||
       parCode == numuPDG || parCode == nutauPDG || parCode == anuePDG ||
-      parCode == anumuPDG || parCode == anutauPDG || parCode == geantinoPDG) 
+      parCode == anumuPDG || parCode == anutauPDG || parCode == geantinoPDG)
     return hit;
   ok = true;
 
-  double tSlice = (postStepPoint->GetGlobalTime())/nanosecond;
-  double pin    = preStepPoint->GetTotalEnergy();
   double pz     = momDir.z(); 
   double zint   = hitPoint.z(); 
 
@@ -233,20 +237,6 @@ std::vector<HFShowerLibrary::Hit> HFShowerLibrary::getHits(G4Step * aStep,
   double ctheta = cos(momDir.theta());
   double stheta = sin(momDir.theta());
 
-#ifdef DebugLog
-  G4ThreeVector localPos = preStepPoint->GetTouchable()->GetHistory()->GetTopTransform().TransformPoint(hitPoint);
-  double zoff   = localPos.z() + 0.5*gpar[1];
-  //  if (zoff < 0) zoff = 0;
-  edm::LogInfo("HFShower") << "HFShowerLibrary: getHits " << partType
-			   << " of energy " << pin/GeV << " GeV"
-			   << "  dir.orts " << momDir.x() << ", " <<momDir.y() 
-			   << ", " << momDir.z() << "  Pos x,y,z = " 
-			   << hitPoint.x() << "," << hitPoint.y() << "," 
-			   << hitPoint.z() << " (" << zoff 
-			   << ")   sphi,cphi,stheta,ctheta  = " << sphi 
-			   << ","  << cphi << ", " << stheta << "," << ctheta; 
-#endif    
-                       
   if (parCode == emPDG || parCode == epPDG || parCode == gammaPDG ) {
     if (pin<pmom[nMomBin-1]) {
       interpolate(0, pin);
@@ -382,7 +372,7 @@ std::vector<HFShowerLibrary::Hit> HFShowerLibrary::getHits(G4Step * aStep,
   if (nHit > npe && !onlyLong)
     edm::LogWarning("HFShower") << "HFShowerLibrary: Hit buffer " << npe 
 				<< " smaller than " << nHit << " Hits";
-  return hit;
+ return hit;
 
 }
 

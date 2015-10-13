@@ -19,7 +19,6 @@ process.RandomNumberGeneratorService.simSiPixelDigis = cms.PSet(
 process.load("FastSimulation/Configuration/FlatPtMuonGun_cfi")
 process.generator.PGunParameters.PartID[0] = 13
 ## for 4 muons to test with vertex
-#process.FlatRandomPtGunSource.PGunParameters.PartID = cms.untracked.vint32(13,-13,13,-13)
 ## for opposite sign back-to-back dimuon pairs
 process.generator.PGunParameters.MinPt = 0.9
 process.generator.PGunParameters.MaxPt = 50.0
@@ -108,9 +107,9 @@ process.load("Validation.RecoTrack.cutsTPFake_cfi")
 #process.cutsTPEffic.src = cms.InputTag("mix")
 #process.cutsTPFake.src = cms.InputTag("mix")
 
-process.load("SimTracker.TrackAssociation.TrackAssociatorByChi2_cfi")
-process.load("SimTracker.TrackAssociation.TrackAssociatorByHits_cfi")
-process.TrackAssociatorByHits.ROUList = ['famosSimHitsTrackerHits']
+process.load("SimTracker.TrackAssociatorProducers.trackAssociatorByChi2_cfi")
+process.load("SimTracker.TrackAssociatorProducers.trackAssociatorByHits_cfi")
+process.trackAssociatorByHits.ROUList = ['famosSimHitsTrackerHits']
 
 process.load("Validation.RecoTrack.MultiTrackValidator_cff")
 #process.multiTrackValidator.label = ['generalTracks']
@@ -119,15 +118,13 @@ process.multiTrackValidator.label = ['ctfWithMaterialTracks']
 #process.multiTrackValidator.label = ['cutsRecoTracks']
 #process.multiTrackValidator.label_tp_effic = cms.InputTag("cutsTPEffic")
 #process.multiTrackValidator.label_tp_fake = cms.InputTag("cutsTPFake")
-process.multiTrackValidator.sim = 'famosSimHits'
-process.multiTrackValidator.associators = ['TrackAssociatorByHits']
+process.multiTrackValidator.sim = ['famosSimHits']
+process.multiTrackValidator.associators = ['trackAssociatorByHits']
 process.multiTrackValidator.UseAssociators = True
 process.multiTrackValidator.outputFile = "validphase1_muon_50GeV.root"
 process.multiTrackValidator.nint = cms.int32(20)
 process.multiTrackValidator.nintpT = cms.int32(25)
 process.multiTrackValidator.maxpT = cms.double(50.0)
-process.multiTrackValidator.skipHistoFit = cms.untracked.bool(False)
-process.multiTrackValidator.runStandalone = cms.bool(True)
 
 ##### with John's changes ##############################
 process.load("SLHCUpgradeSimulations.Geometry.oldTracking_wtriplets")
@@ -296,7 +293,7 @@ process.p6 = cms.Path(process.oldTracking_wtriplets)
 #process.p6 = cms.Path(process.offlineBeamSpot+process.recopixelvertexing*process.ckftracks)
 process.p7 = cms.Path(process.anal)
 #process.p8 = cms.Path(process.cutsTPEffic*process.cutsTPFake*process.cutsRecoTracks*process.multiTrackValidator)
-process.p8 = cms.Path(process.cutsTPEffic*process.cutsTPFake*process.multiTrackValidator)
+process.p8 = cms.Path(process.cutsTPEffic*process.cutsTPFake*process.trackAssociatorByHits*process.multiTrackValidator)
 #process.p9 = cms.Path(process.ReadLocalMeasurement)
 process.p9 = cms.Path(process.ReadLocalMeasurement)
 process.schedule = cms.Schedule(process.p0,process.p1,process.p2,process.p3,process.p6,process.p8,process.p9)

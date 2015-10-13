@@ -21,7 +21,6 @@
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
-#include "CommonTools/RecoAlgos/interface/RecoTrackSelector.h"
 #include "SimTracker/Common/interface/TrackingParticleSelector.h"
 #include "CommonTools/RecoAlgos/interface/CosmicTrackingParticleSelector.h"
 #include "DataFormats/Common/interface/ValueMap.h"
@@ -55,13 +54,13 @@ class MultiTrackValidatorBase {
   //DQMStore* dbe_;
 
   // MTV-specific data members
-  std::vector<std::string> associators;
+  std::vector<edm::InputTag> associators;
   edm::EDGetTokenT<TrackingParticleCollection> label_tp_effic;
   edm::EDGetTokenT<TrackingParticleCollection> label_tp_fake;
   edm::EDGetTokenT<TrackingVertexCollection> label_tv;
   edm::EDGetTokenT<std::vector<PileupSummaryInfo> > label_pileupinfo;
 
-  std::string sim;
+  std::vector<edm::EDGetTokenT<std::vector<PSimHit> > > simHitTokens_;
   std::string parametersDefiner;
 
 
@@ -70,16 +69,10 @@ class MultiTrackValidatorBase {
   std::vector<edm::EDGetTokenT<edm::View<TrajectorySeed> > > labelTokenSeed;
   edm::EDGetTokenT<reco::BeamSpot>  bsSrc;
 
-  std::string out;
-
   edm::EDGetTokenT<edm::ValueMap<reco::DeDxData> > m_dEdx1Tag;
   edm::EDGetTokenT<edm::ValueMap<reco::DeDxData> > m_dEdx2Tag;
 
-  edm::ESHandle<MagneticField> theMF;
-
   bool ignoremissingtkcollection_;
-  bool skipHistoFit;
-
 };
 
 

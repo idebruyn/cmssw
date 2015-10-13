@@ -54,15 +54,18 @@ protected:
      static const std::string kExtendedBaseForEDAnalyzer;
      static const std::string kExtendedBaseForEDProducer;
      static const std::string kExtendedBaseForEDFilter;
+     static const std::string kExtendedBaseForOutputModule;
      static const std::string kExtendedBaseForOneEDAnalyzer;
      static const std::string kExtendedBaseForOneEDProducer;
      static const std::string kExtendedBaseForOneEDFilter;
+     static const std::string kExtendedBaseForOneOutputModule;
      static const std::string kExtendedBaseForStreamEDAnalyzer;
      static const std::string kExtendedBaseForStreamEDProducer;
      static const std::string kExtendedBaseForStreamEDFilter;
      static const std::string kExtendedBaseForGlobalEDAnalyzer;
      static const std::string kExtendedBaseForGlobalEDProducer;
      static const std::string kExtendedBaseForGlobalEDFilter;
+     static const std::string kExtendedBaseForGlobalOutputModule;
 
    private:
       ParameterSetDescriptionFillerBase(const ParameterSetDescriptionFillerBase&); // stop default

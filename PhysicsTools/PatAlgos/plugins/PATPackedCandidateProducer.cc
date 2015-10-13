@@ -9,7 +9,7 @@
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/Common/interface/Association.h"
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
 #include "DataFormats/Common/interface/View.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -31,17 +31,17 @@
 
 namespace pat {
     ///conversion map from quality flags used in PV association and miniAOD one
-    static int qualityMap[8]  = {1,0,1,1,4,4,5,6};
+    const static int qualityMap[8]  = {1,0,1,1,4,4,5,6};
 
-    class PATPackedCandidateProducer : public edm::EDProducer {
+    class PATPackedCandidateProducer : public edm::global::EDProducer<> {
         public:
             explicit PATPackedCandidateProducer(const edm::ParameterSet&);
             ~PATPackedCandidateProducer();
 
-            virtual void produce(edm::Event&, const edm::EventSetup&);
+            virtual void produce(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
             //sorting of cands to maximize the zlib compression
-            bool candsOrdering(pat::PackedCandidate i,pat::PackedCandidate j) {
+            bool candsOrdering(pat::PackedCandidate i,pat::PackedCandidate j) const {
                 if (std::abs(i.charge()) == std::abs(j.charge())) {
                     if(i.charge()!=0){
                         if(i.pt() > minPtForTrackProperties_ and j.pt() <= minPtForTrackProperties_ ) return true;
@@ -55,7 +55,7 @@ namespace pat {
                 return std::abs(i.charge()) > std::abs(j.charge());
             }
             template <typename T>
-            std::vector<size_t> sort_indexes(const std::vector<T> &v ) {
+            std::vector<size_t> sort_indexes(const std::vector<T> &v ) const {
               std::vector<size_t> idx(v.size());
               for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
               std::sort(idx.begin(), idx.end(),[&v,this](size_t i1, size_t i2) { return candsOrdering(v[i1],v[i2]);});
@@ -63,22 +63,25 @@ namespace pat {
            }
 
         private:
-            edm::EDGetTokenT<reco::PFCandidateCollection>    Cands_;
-            edm::EDGetTokenT<reco::VertexCollection>         PVs_;
-            edm::EDGetTokenT<edm::Association<reco::VertexCollection> > PVAsso_;
-            edm::EDGetTokenT<edm::ValueMap<int> >            PVAssoQuality_;
-            edm::EDGetTokenT<reco::VertexCollection>         PVOrigs_;
-            edm::EDGetTokenT<reco::TrackCollection>          TKOrigs_;
-            edm::EDGetTokenT< edm::ValueMap<float> >         PuppiWeight_;
-            edm::EDGetTokenT<edm::ValueMap<reco::CandidatePtr> >    PuppiCandsMap_;
-            edm::EDGetTokenT<std::vector< reco::PFCandidate >  >    PuppiCands_;
+            const edm::EDGetTokenT<reco::PFCandidateCollection>    Cands_;
+            const edm::EDGetTokenT<reco::VertexCollection>         PVs_;
+            const edm::EDGetTokenT<edm::Association<reco::VertexCollection> > PVAsso_;
+            const edm::EDGetTokenT<edm::ValueMap<int> >            PVAssoQuality_;
+            const edm::EDGetTokenT<reco::VertexCollection>         PVOrigs_;
+            const edm::EDGetTokenT<reco::TrackCollection>          TKOrigs_;
+            const edm::EDGetTokenT< edm::ValueMap<float> >         PuppiWeight_;
+            const edm::EDGetTokenT< edm::ValueMap<float> >         PuppiWeightNoLep_;
+            const edm::EDGetTokenT<edm::ValueMap<reco::CandidatePtr> >    PuppiCandsMap_;
+            const edm::EDGetTokenT<std::vector< reco::PFCandidate >  >    PuppiCands_;
+            const edm::EDGetTokenT<std::vector< reco::PFCandidate >  >    PuppiCandsNoLep_;
+            std::vector< edm::EDGetTokenT<edm::View<reco::CompositePtrCandidate> > > SVWhiteLists_;
 
-            double minPtForTrackProperties_;
+            const double minPtForTrackProperties_;
             // for debugging
-            float calcDxy(float dx, float dy, float phi) {
+            float calcDxy(float dx, float dy, float phi) const {
                 return - dx * std::sin(phi) + dy * std::cos(phi);
             }
-            float calcDz(reco::Candidate::Point p, reco::Candidate::Point v, const reco::Candidate &c) {
+            float calcDz(reco::Candidate::Point p, reco::Candidate::Point v, const reco::Candidate &c) const {
                 return p.Z()-v.Z() - ((p.X()-v.X()) * c.px() + (p.Y()-v.Y())*c.py()) * c.pz()/(c.pt()*c.pt());
             }
     };
@@ -92,10 +95,19 @@ pat::PATPackedCandidateProducer::PATPackedCandidateProducer(const edm::Parameter
   PVOrigs_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("originalVertices"))),
   TKOrigs_(consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("originalTracks"))),
   PuppiWeight_(consumes<edm::ValueMap<float> >(iConfig.getParameter<edm::InputTag>("PuppiSrc"))),
+  PuppiWeightNoLep_(consumes<edm::ValueMap<float> >(iConfig.getParameter<edm::InputTag>("PuppiNoLepSrc"))),
   PuppiCandsMap_(consumes<edm::ValueMap<reco::CandidatePtr> >(iConfig.getParameter<edm::InputTag>("PuppiSrc"))),
   PuppiCands_(consumes<std::vector< reco::PFCandidate > >(iConfig.getParameter<edm::InputTag>("PuppiSrc"))),
+  PuppiCandsNoLep_(consumes<std::vector< reco::PFCandidate > >(iConfig.getParameter<edm::InputTag>("PuppiNoLepSrc"))),
   minPtForTrackProperties_(iConfig.getParameter<double>("minPtForTrackProperties"))
 {
+  std::vector<edm::InputTag> sv_tags = iConfig.getParameter<std::vector<edm::InputTag> >("secondaryVerticesForWhiteList");
+  for(auto itag : sv_tags){
+    SVWhiteLists_.push_back(
+      consumes<edm::View< reco::CompositePtrCandidate > >(itag)
+      );
+  }
+
   produces< std::vector<pat::PackedCandidate> > ();
   produces< edm::Association<pat::PackedCandidateCollection> > ();
   produces< edm::Association<reco::PFCandidateCollection> > ();
@@ -105,7 +117,7 @@ pat::PATPackedCandidateProducer::~PATPackedCandidateProducer() {}
 
 
 
-void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void pat::PATPackedCandidateProducer::produce(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
 
     edm::Handle<reco::PFCandidateCollection> cands;
     iEvent.getByToken( Cands_, cands );
@@ -119,6 +131,19 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
     iEvent.getByToken( PuppiCands_, puppiCands );
     std::vector<int> mappingPuppi(puppiCands->size());
 
+    edm::Handle< edm::ValueMap<float> > puppiWeightNoLep;
+    iEvent.getByToken( PuppiWeightNoLep_, puppiWeightNoLep );
+    edm::Handle<std::vector< reco::PFCandidate > > puppiCandsNoLep;
+    iEvent.getByToken( PuppiCandsNoLep_, puppiCandsNoLep );  
+
+    std::vector<reco::CandidatePtr> puppiCandsNoLepPtrs;
+    if (puppiCandsNoLep.isValid()){
+      for (auto pup : *puppiCandsNoLep){
+        puppiCandsNoLepPtrs.push_back(pup.sourceCandidatePtr(0));
+      }
+    }
+    auto const& puppiCandsNoLepV = puppiCandsNoLep.product();
+
     edm::Handle<reco::VertexCollection> PVOrigs;
     iEvent.getByToken( PVOrigs_, PVOrigs );
 
@@ -129,10 +154,25 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
     const edm::Association<reco::VertexCollection> &  associatedPV=*(assoHandle.product());
     const edm::ValueMap<int>  &  associationQuality=*(assoQualityHandle.product());
            
+
+    std::set<unsigned int> whiteList;
+    for(auto itoken : SVWhiteLists_) {
+      edm::Handle<edm::View<reco::CompositePtrCandidate > > svWhiteListHandle;
+      iEvent.getByToken(itoken, svWhiteListHandle);
+      const edm::View<reco::CompositePtrCandidate > &  svWhiteList=*(svWhiteListHandle.product());
+      for(unsigned int i=0; i<svWhiteList.size();i++) {
+        for(unsigned int j=0; j< svWhiteList[i].numberOfSourceCandidatePtrs(); j++) {
+          const edm::Ptr<reco::Candidate> & c = svWhiteList[i].sourceCandidatePtr(j);
+          if(c.id() == cands.id()) whiteList.insert(c.key());
+        }
+      }
+    }
  
+
     edm::Handle<reco::VertexCollection> PVs;
     iEvent.getByToken( PVs_, PVs );
     reco::VertexRef PV(PVs.id());
+    reco::VertexRefProd PVRefProd(PVs);
     math::XYZPoint  PVpos;
 
 
@@ -160,11 +200,10 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
             if(dz<dist) {pvi=ii;dist=dz; }
           }
           PV = reco::VertexRef(PVs, pvi);
-          PVpos = PV->position();
           math::XYZPoint vtx = cand.vertex();
           pat::PackedCandidate::LostInnerHits lostHits = pat::PackedCandidate::noLostInnerHits;
           const reco::VertexRef & PVOrig = associatedPV[reco::CandidatePtr(cands,ic)];
-          PV = reco::VertexRef(PVs, PVOrig.key()); // WARNING: assume the PV slimmer is keeping same order
+          if(PVOrig.isNonnull()) PV = reco::VertexRef(PVs, PVOrig.key()); // WARNING: assume the PV slimmer is keeping same order
           int quality=associationQuality[reco::CandidatePtr(cands,ic)];
 //          if ((size_t)pvi!=PVOrig.key()) std::cout << "not closest in Z" << pvi << " " << PVOrig.key() << " " << cand.pt() << " " << quality << std::endl;
           //          TrajectoryStateOnSurface tsos = extrapolator.extrapolate(trajectoryStateTransform::initialFreeState(*ctrack,&*magneticField), RecoVertex::convertPos(PV->position()));
@@ -182,14 +221,14 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
           }
 
 
-          outPtrP->push_back( pat::PackedCandidate(cand.polarP4(), vtx, phiAtVtx, cand.pdgId(), PV));
+          outPtrP->push_back( pat::PackedCandidate(cand.polarP4(), vtx, phiAtVtx, cand.pdgId(), PVRefProd, PV.key()));
           outPtrP->back().setAssociationQuality(pat::PackedCandidate::PVAssociationQuality(qualityMap[quality]));
           if(cand.trackRef().isNonnull() && PVOrig->trackWeight(cand.trackRef()) > 0.5 && quality == 7) {
                   outPtrP->back().setAssociationQuality(pat::PackedCandidate::UsedInFitTight);
           }
           // properties of the best track 
           outPtrP->back().setLostInnerHits( lostHits );
-          if(outPtrP->back().pt() > minPtForTrackProperties_) {
+          if(outPtrP->back().pt() > minPtForTrackProperties_ || whiteList.find(ic)!=whiteList.end()) {
             outPtrP->back().setTrackProperties(*ctrack);
             //outPtrP->back().setTrackProperties(*ctrack,tsos.curvilinearError());
           }
@@ -206,15 +245,40 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
             PVpos = PV->position();
           }
 
-          outPtrP->push_back( pat::PackedCandidate(cand.polarP4(), PVpos, cand.phi(), cand.pdgId(), PV));
+          outPtrP->push_back( pat::PackedCandidate(cand.polarP4(), PVpos, cand.phi(), cand.pdgId(), PVRefProd, PV.key()));
           outPtrP->back().setAssociationQuality(pat::PackedCandidate::PVAssociationQuality(pat::PackedCandidate::UsedInFitTight));
         }
 	
-	if (puppiWeight.isValid()){
-	  reco::PFCandidateRef pkref( cands, ic );
-	  outPtrP->back().setPuppiWeight( (*puppiWeight)[pkref]);
-	  mappingPuppi[((*puppiCandsMap)[pkref]).key()]=ic;
-	}
+        if (puppiWeight.isValid()){
+           reco::PFCandidateRef pkref( cands, ic );
+                 // outPtrP->back().setPuppiWeight( (*puppiWeight)[pkref]);
+           
+           float puppiWeightVal = (*puppiWeight)[pkref];
+           float puppiWeightNoLepVal = 0.0;
+
+           // Check the "no lepton" puppi weights. 
+           // If present, then it is not a lepton, use stored weight
+           // If absent, it is a lepton, so set the weight to 1.0
+           if ( puppiWeightNoLep.isValid() ) {
+             // Look for the pointer inside the "no lepton" candidate collection.
+             auto pkrefPtr = pkref->sourceCandidatePtr(0);
+
+             bool foundNoLep = false;
+             for ( size_t ipcnl = 0; ipcnl < puppiCandsNoLepPtrs.size(); ipcnl++){
+              if (puppiCandsNoLepPtrs[ipcnl] == pkrefPtr){
+                foundNoLep = true;
+                  puppiWeightNoLepVal = puppiCandsNoLepV->at(ipcnl).pt()/cand.pt(); // a hack for now, should use the value map
+                  break;
+                }
+              }
+              if ( !foundNoLep || puppiWeightNoLepVal > 1 ) {
+                puppiWeightNoLepVal = 1.0;
+              }
+            }
+          outPtrP->back().setPuppiWeight( puppiWeightVal, puppiWeightNoLepVal );
+
+          mappingPuppi[((*puppiCandsMap)[pkref]).key()]=ic;
+        }
 	
         mapping[ic] = ic; // trivial at the moment!
         if (cand.trackRef().isNonnull() && cand.trackRef().id() == TKOrigs.id()) {
@@ -234,7 +298,8 @@ void pat::PATPackedCandidateProducer::produce(edm::Event& iEvent, const edm::Eve
 
     // Fix track association for sorted candidates
     for(size_t i=0,ntk=mappingTk.size();i<ntk;i++){
-        mappingTk[i]=reverseOrder[mappingTk[i]]; 
+        if(mappingTk[i] >= 0)
+          mappingTk[i]=reverseOrder[mappingTk[i]];
     }
 
     for(size_t i=0,ntk=mappingPuppi.size();i<ntk;i++){
