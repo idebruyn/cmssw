@@ -11,7 +11,8 @@
 #include <cassert>
 #include <cfloat>
 #include <inttypes.h>
-
+#include <typeinfo>
+#include<string>
 static TH1 *
 checkRootObject(const std::string &name, TObject *tobj, const char *func, int reqdim)
 {
@@ -45,6 +46,7 @@ MonitorElement::initialise(Kind kind)
   case DQM_KIND_TH2F:
   case DQM_KIND_TH2S:
   case DQM_KIND_TH2D:
+  case DQM_KIND_TH2POLY:
   case DQM_KIND_TH3F:
   case DQM_KIND_TPROFILE:
   case DQM_KIND_TPROFILE2D:
@@ -99,6 +101,11 @@ MonitorElement::initialise(Kind kind, TH1 *rootobj)
   case DQM_KIND_TH2D:
     assert(dynamic_cast<TH2D *>(rootobj));
     assert(! reference_ || dynamic_cast<TH1D *>(reference_));
+    object_ = rootobj;
+    break;
+  case DQM_KIND_TH2POLY:
+    assert(dynamic_cast<TH2Poly *>(rootobj));
+    assert(! reference_ || dynamic_cast<TH2Poly *>(reference_));
     object_ = rootobj;
     break;
 
@@ -225,14 +232,17 @@ MonitorElement::operator=(const MonitorElement &x)
 
 MonitorElement::~MonitorElement(void)
 {
+  // if(object_==TH2Poly)
+  //std::string s = typeid(object_).name();
+  //std:: cout<<"Deleting Object Named :   "<<s<<std::endl;
   delete object_;
+  // std::cout<<"Object Deleted, Deleting Ref Value"<<std::endl;
   delete refvalue_;
+  // std::cout<<"Deleting ReF Valye"<<std::endl;
 }
 
-//utility function to check the consistency of the axis labels
-//taken from TH1::CheckBinLabels which is not public
-bool
-MonitorElement::CheckBinLabels(const TAxis* a1, const TAxis * a2)
+
+bool MonitorElement::CheckBinLabels(const TAxis* a1, const TAxis * a2)
 {
   // check that axis have same labels
   THashList *l1 = (const_cast<TAxis*>(a1))->GetLabels();
@@ -256,6 +266,7 @@ MonitorElement::CheckBinLabels(const TAxis* a1, const TAxis * a2)
   }
   return true;
 }
+
 
 /// "Fill" ME methods for string
 void
@@ -334,6 +345,9 @@ MonitorElement::Fill(double x, double yw)
       ->Fill(x, yw, 1);
   else if (kind() == DQM_KIND_TH2D)
     static_cast<TH2D *>(accessRootObject(__PRETTY_FUNCTION__, 2))
+      ->Fill(x, yw, 1);
+  else if (kind() == DQM_KIND_TH2POLY)
+    static_cast<TH2Poly *>(accessRootObject(__PRETTY_FUNCTION__, 2))
       ->Fill(x, yw, 1);
   else if (kind() == DQM_KIND_TPROFILE)
     static_cast<TProfile *>(accessRootObject(__PRETTY_FUNCTION__, 1))
@@ -429,6 +443,9 @@ MonitorElement::Fill(double x, double y, double zw)
       ->Fill(x, y, zw);
   else if (kind() == DQM_KIND_TH2D)
     static_cast<TH2D *>(accessRootObject(__PRETTY_FUNCTION__, 2))
+      ->Fill(x, y, zw);
+  else if (kind() == DQM_KIND_TH2POLY)
+    static_cast<TH2Poly *>(accessRootObject(__PRETTY_FUNCTION__, 2))
       ->Fill(x, y, zw);
   else if (kind() == DQM_KIND_TH3F)
     static_cast<TH3F *>(accessRootObject(__PRETTY_FUNCTION__, 2))
@@ -939,7 +956,7 @@ MonitorElement::setBinLabel(int bin, const std::string &label, int axis /* = 1 *
   {
     //  edm::LogWarning ("MonitorElement")
     std::cout << "*** MonitorElement: WARNING:"
-              <<"setBinLabel: attempting to set label of non-existent bin number for ME: "<< getFullname() << " \n";
+              <<"setBinLabel: attempting to set label of non-existent bin number \n";
   }
 }
 
@@ -1114,6 +1131,25 @@ MonitorElement::softReset(void)
     r->Add(orig);
     orig->Reset();
   }
+   else if (kind() == DQM_KIND_TH2POLY)
+  {
+    TH2Poly *orig = static_cast<TH2Poly *>(object_);
+    TH2Poly *r = static_cast<TH2Poly *>(refvalue_);
+    if (! r)
+    {
+      refvalue_ = r = new TH2Poly((std::string(orig->GetName()) + "_ref").c_str(),
+                               orig->GetTitle(),
+                               orig->GetXaxis()->GetXmin(),
+                               orig->GetXaxis()->GetXmax(),
+                               orig->GetYaxis()->GetXmin(),
+                               orig->GetYaxis()->GetXmax());
+      r->SetDirectory(0);
+      r->Reset("");
+    }
+
+    r->Add(orig,1);
+    orig->Reset("");
+  }
   else if (kind() == DQM_KIND_TH3F)
   {
     TH3F *orig = static_cast<TH3F *>(object_);
@@ -1172,6 +1208,7 @@ MonitorElement::disableSoftReset(void)
         || kind() == DQM_KIND_TH2F
         || kind() == DQM_KIND_TH2S
         || kind() == DQM_KIND_TH2D
+	|| kind() == DQM_KIND_TH2POLY
         || kind() == DQM_KIND_TH3F)
     {
       TH1 *orig = static_cast<TH1 *>(object_);
@@ -1346,6 +1383,7 @@ MonitorElement::copyFrom(TH1 *from)
         || kind() == DQM_KIND_TH2F
         || kind() == DQM_KIND_TH2S
         || kind() == DQM_KIND_TH2D
+	|| kind() == DQM_KIND_TH2POLY
         || kind() == DQM_KIND_TH3F)
       // subtract "reference"
       orig->Add(from, refvalue_, 1, -1);
@@ -1510,6 +1548,13 @@ MonitorElement::getTH2D(void) const
   const_cast<MonitorElement *>(this)->update();
   return static_cast<TH2D *>(accessRootObject(__PRETTY_FUNCTION__, 2));
 }
+TH2Poly *
+MonitorElement::getTH2Poly(void) const
+{
+  assert(kind() == DQM_KIND_TH2POLY);
+  const_cast<MonitorElement *>(this)->update();
+  return static_cast<TH2Poly *>(accessRootObject(__PRETTY_FUNCTION__, 2));
+}
 
 TH3F *
 MonitorElement::getTH3F(void) const
@@ -1601,6 +1646,14 @@ MonitorElement::getRefTH2D(void) const
   assert(kind() == DQM_KIND_TH2D);
   const_cast<MonitorElement *>(this)->update();
   return static_cast<TH2D *>
+    (checkRootObject(data_.objname, reference_, __PRETTY_FUNCTION__, 2));
+}
+TH2Poly *
+MonitorElement::getRefTH2Poly(void) const
+{
+  assert(kind() == DQM_KIND_TH2POLY);
+  const_cast<MonitorElement *>(this)->update();
+  return static_cast<TH2Poly *>
     (checkRootObject(data_.objname, reference_, __PRETTY_FUNCTION__, 2));
 }
 

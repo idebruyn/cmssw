@@ -54,6 +54,7 @@ SiStripMonitorDigi::SiStripMonitorDigi(const edm::ParameterSet& iConfig) :
   folder_organizer(), 
   m_cacheID_(0) 
 {
+  pu = new PolyUtil();
   firstEvent = -1;
   eventNb = 0;
 
@@ -350,10 +351,10 @@ void SiStripMonitorDigi::createMEs(DQMStore::IBooker & ibooker , const edm::Even
 
     // Create TkHistoMap for Digi and APV shots properies
     
-    if (digitkhistomapon)      tkmapdigi                = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NumberOfDigi",        0.0,true);
-    if (shotshistomapon)       tkmapNApvshots           = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NApvShots",           0.0,true);
-    if (shotsstripshistomapon) tkmapNstripApvshot       = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NStripApvShots",      0.0,true);
-    if (shotschargehistomapon) tkmapMedianChargeApvshots= new TkHistoMap(ibooker , topFolderName_,"TkHMap_MedianChargeApvShots",0.0,true);
+    if (digitkhistomapon)      tkmapdigi                = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NumberOfDigi", pu,es,       0.0,true);
+    if (shotshistomapon)       tkmapNApvshots           = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NApvShots",    pu,es,       0.0,true);
+    if (shotsstripshistomapon) tkmapNstripApvshot       = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NStripApvShots",pu,es,      0.0,true);
+    if (shotschargehistomapon) tkmapMedianChargeApvshots= new TkHistoMap(ibooker , topFolderName_,"TkHMap_MedianChargeApvShots",pu,es,0.0,true);
     
     std::vector<uint32_t> tibDetIds;
     
@@ -517,6 +518,7 @@ void SiStripMonitorDigi::createMEs(DQMStore::IBooker & ibooker , const edm::Even
     folder_organizer.getLayerFolderName(ss, 0, tTopo);
     ibooker.setCurrentFolder(ss.str().c_str());
     
+    //    if (subdetswitchtotdigiproflson) {
     if (subdetswitchtotdigifailureon) {
       const char* HistoName = "NumberOfDigisInLastLS";
       digiFailureMEs.SubDetTotDigiProfLS= ibooker.bookProfile(HistoName, HistoName,
@@ -639,6 +641,7 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
 	const std::vector<APVShot>& shots = theShotFinder.getShots();
 	AddApvShotsToSubDet(shots,SubDetMEsMap[subdet_label].SubDetApvShots);
 	if (shotshistomapon) tkmapNApvshots->fill(detid,shots.size());
+	if (shotshistomapon) tkmapNApvshots->fillPoly(detid,shots.size(),pu);
 	if (shotsstripshistomapon) FillApvShotsMap(tkmapNstripApvshot,shots,detid,1);
 	if (shotschargehistomapon) FillApvShotsMap(tkmapMedianChargeApvshots,shots,detid,2);
       }
@@ -650,6 +653,7 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
 	local_layermes.LayerNumberOfDigisProfile->Fill(iDet*1.0,ndigi_det);
 
       if (digitkhistomapon) tkmapdigi->fill(detid,ndigi_det);
+      if (digitkhistomapon) tkmapdigi->fillPoly(detid,ndigi_det,pu);
 
       if (ndigi_det == 0) continue; // no digis for this detid => jump to next step of loop
      
@@ -760,6 +764,7 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
   for (std::map<std::string, SubDetMEs>::iterator it = SubDetMEsMap.begin();
        it != SubDetMEsMap.end(); it++) {
 
+    //      if (subdetswitchtotdigiproflson) {
       if (subdetswitchtotdigifailureon) {
         if (strcmp(it->first.c_str(),"TEC__MINUS")==0){
           digiFailureMEs.SubDetTotDigiProfLS->Fill(1, it->second.totNDigis);

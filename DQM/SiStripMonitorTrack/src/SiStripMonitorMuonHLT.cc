@@ -23,6 +23,7 @@
 //
 SiStripMonitorMuonHLT::SiStripMonitorMuonHLT (const edm::ParameterSet & iConfig)
 {
+  pu = new PolyUtil();
   cached_detid=0;
   cached_layer=0;
   //now do what ever initialization is needed
@@ -1252,11 +1253,11 @@ void SiStripMonitorMuonHLT::bookHistograms(DQMStore::IBooker & ibooker , const e
   createMEs (ibooker , es);
   //create TKHistoMap
   if(runOnClusters_)
-    tkmapAllClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_AllClusters",0.0,0);
+    tkmapAllClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_AllClusters",pu,es,0.0,0);
   if(runOnTracks_)
-    tkmapOnTrackClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_OnTrackClusters",0.0,0);
+    tkmapOnTrackClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_OnTrackClusters",pu,es,0.0,0);
   if(runOnMuonCandidates_)
-    tkmapL3MuTrackClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_L3MuTrackClusters",0.0,0);
+    tkmapL3MuTrackClusters = new TkHistoMap(ibooker , "HLT/HLTMonMuon/SiStrip" ,"TkHMap_L3MuTrackClusters",pu,es,0.0,0);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------

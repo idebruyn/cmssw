@@ -1,0 +1,77 @@
+#ifndef DQM_SiStripCommon_PolyUtil_h
+#define DQM_SiStripCommon_PolyUtil_h
+#include "FWCore/ParameterSet/interface/FileInPath.h"
+#include "DQMServices/Core/interface/MonitorElement.h"
+#include <TH2Poly.h>
+#include <TPolyLine.h>
+#include <TStyle.h>
+#include <TCanvas.h>
+#include <TGraph.h>
+#include <TString.h>
+#include <TRandom.h>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <TObjArray.h>
+#include <TObjString.h>
+#include <vector>
+#include "DataFormats/SiStripDetId/interface/SiStripSubStructure.h"
+
+
+class PolyUtil{
+	public:
+                PolyUtil();
+		void getComponents(uint32_t& layer , Double_t& highX , Double_t& lowX , Double_t& highY , Double_t& lowY);
+		void FillBins(MonitorElement* mePoly , uint32_t& layer);
+		int subdet(const unsigned int& id_);
+		int layer(const unsigned int& id);
+		int side(const unsigned int& id_);
+		void SyncBins(std::vector<MonitorElement*> &tkHistoMap_,  std::vector<MonitorElement*> &tkHistoMapPoly_);
+		std::map<std::pair<Int_t,Int_t>,Double_t> mMinx;
+	        std::map<std::pair<Int_t,Int_t>,Double_t> mMiny;
+
+
+ private : 
+		
+      		std::map<Long_t,TGraph*> bins;
+		std::vector<uint32_t> detIdVector;
+		std::vector<uint32_t> selectedDetIds[35];
+		enum TkLayerEnum { INVALID=0,
+				    TIB_L1, //1
+				    TIB_L2,
+				    TIB_L3,
+				    TIB_L4,
+				    TIDM_D1, //5
+				    TIDM_D2,
+				    TIDM_D3,
+				    TIDP_D1, //8
+				    TIDP_D2,
+				    TIDP_D3,
+				    TOB_L1, //11
+				    TOB_L2,
+				    TOB_L3,
+				    TOB_L4,
+				    TOB_L5,
+				    TOB_L6,
+				    TECM_W1, //17
+				    TECM_W2,
+				    TECM_W3,
+				    TECM_W4,
+				    TECM_W5,
+				    TECM_W6,
+				    TECM_W7,
+				    TECM_W8,
+				    TECM_W9,
+				    TECP_W1, //26
+				    TECP_W2,
+				    TECP_W3,
+				    TECP_W4,
+				    TECP_W5,
+				    TECP_W6,
+				    TECP_W7,
+				    TECP_W8,
+				    TECP_W9 //34
+  };
+};
+
+#endif

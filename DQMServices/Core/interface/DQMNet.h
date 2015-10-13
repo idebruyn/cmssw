@@ -33,6 +33,7 @@ public:
   static const uint32_t DQM_PROP_TYPE_TH1D	 = 0x00000012;
   static const uint32_t DQM_PROP_TYPE_TH2F	 = 0x00000020;
   static const uint32_t DQM_PROP_TYPE_TH2S	 = 0x00000021;
+  static const uint32_t DQM_PROP_TYPE_TH2POLY    = 0x00000023;
   static const uint32_t DQM_PROP_TYPE_TH2D	 = 0x00000022;
   static const uint32_t DQM_PROP_TYPE_TH3F	 = 0x00000030;
   static const uint32_t DQM_PROP_TYPE_TH3S	 = 0x00000031;

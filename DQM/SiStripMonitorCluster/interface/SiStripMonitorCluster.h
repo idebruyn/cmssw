@@ -142,7 +142,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
 
   // TkHistoMap added
   TkHistoMap* tkmapcluster; 
-
+  PolyUtil* pu ;
   int runNb, eventNb;
   int firstEvent;
   float trendVar;

@@ -77,7 +77,7 @@ private:
   struct Det2MEs;
 
   //booking
-  void book(DQMStore::IBooker &, const TrackerTopology* tTopo);
+  void book(DQMStore::IBooker &, const TrackerTopology* tTopo,const edm::EventSetup & es);
   void bookModMEs(DQMStore::IBooker &, const uint32_t );
   void bookLayerMEs(DQMStore::IBooker &, const uint32_t, std::string&);
   void bookRing(DQMStore::IBooker &, const uint32_t, std::string&);
@@ -205,6 +205,7 @@ private:
   //  edm::EDGetTokenT<std::vector<Trajectory> > trajectoryToken_;
   edm::EDGetTokenT<TrajTrackAssociationCollection> trackTrajToken_;
 
+  PolyUtil* pu ;
   bool Mod_On_;
   bool Trend_On_;
   bool OffHisto_On_;

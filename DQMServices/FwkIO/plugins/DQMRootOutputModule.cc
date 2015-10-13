@@ -24,6 +24,7 @@
 #include "TString.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH2Poly.h"
 #include "TProfile.h"
 
 // user include files
@@ -249,6 +250,8 @@ makeHelper(unsigned int iTypeIndex,
     return new TreeHelper<TH2S>(iTree,iFullNameBufferPtr);
     case kTH2DIndex:
     return new TreeHelper<TH2D>(iTree,iFullNameBufferPtr);
+    case kTH2PolyIndex:
+    return new TreeHelper<TH2Poly>(iTree,iFullNameBufferPtr);
     case kTH3FIndex:
     return new TreeHelper<TH3F>(iTree,iFullNameBufferPtr);
     case kTProfileIndex:
@@ -373,6 +376,7 @@ DQMRootOutputModule::openFile(edm::FileBlock const&)
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TH2F]=kTH2FIndex;
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TH2S]=kTH2SIndex;
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TH2D]=kTH2DIndex;
+  m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TH2POLY]=kTH2PolyIndex; 
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TH3F]=kTH3FIndex;
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TPROFILE]=kTProfileIndex;
   m_dqmKindToTypeIndex[MonitorElement::DQM_KIND_TPROFILE2D]=kTProfile2DIndex;

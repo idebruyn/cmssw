@@ -22,12 +22,12 @@
 //These are the different types where each type has its own TTree
 enum TypeIndex {kIntIndex, kFloatIndex, kStringIndex,
                 kTH1FIndex, kTH1SIndex, kTH1DIndex,
-                kTH2FIndex,kTH2SIndex, kTH2DIndex, kTH3FIndex,
+                kTH2FIndex,kTH2SIndex, kTH2DIndex,kTH2PolyIndex, kTH3FIndex,
                 kTProfileIndex,kTProfile2DIndex,kNIndicies,kNoTypesStored=1000};
 
 static const char* const kTypeNames[]={"Ints","Floats","Strings",
                                        "TH1Fs","TH1Ss","TH1Ds",
-                                       "TH2Fs", "TH2Ss", "TH2Ds",
+                                       "TH2Fs", "TH2Ss", "TH2Ds","TH2Polys",
                                        "TH3Fs", "TProfiles","TProfile2Ds"};
 
 //Branches for each TTree type

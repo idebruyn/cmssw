@@ -27,6 +27,7 @@ SiStripMonitorTrack::SiStripMonitorTrack(const edm::ParameterSet& conf):
   firstEvent(-1),
   genTriggerEventFlag_(new GenericTriggerEventFlag(conf, consumesCollector()))
 {
+  pu = new PolyUtil();
   Cluster_src_   = conf.getParameter<edm::InputTag>("Cluster_src");
   Mod_On_        = conf.getParameter<bool>("Mod_On");
   Trend_On_      = conf.getParameter<bool>("Trend_On");
@@ -82,7 +83,7 @@ void SiStripMonitorTrack::bookHistograms(DQMStore::IBooker & ibooker , const edm
   edm::ESHandle<TrackerTopology> tTopoHandle;
   es.get<IdealGeometryRecord>().get(tTopoHandle);
   const TrackerTopology* const tTopo = tTopoHandle.product();
-  book(ibooker , tTopo);
+  book(ibooker , tTopo,es);
 }
 
 // ------------ method called to produce the data  ------------
@@ -134,16 +135,16 @@ void SiStripMonitorTrack::analyze(const edm::Event& e, const edm::EventSetup& es
 }
 
 //------------------------------------------------------------------------
-void SiStripMonitorTrack::book(DQMStore::IBooker & ibooker , const TrackerTopology* tTopo)
+void SiStripMonitorTrack::book(DQMStore::IBooker & ibooker , const TrackerTopology* tTopo ,const edm::EventSetup & es )
 {
 
   SiStripFolderOrganizer folder_organizer;
   folder_organizer.setSiStripFolderName(topFolderName_);
   //******** TkHistoMaps
   if (TkHistoMap_On_) {
-    tkhisto_StoNCorrOnTrack = new TkHistoMap(ibooker , topFolderName_ ,"TkHMap_StoNCorrOnTrack",         0.0,true);
-    tkhisto_NumOnTrack      = new TkHistoMap(ibooker , topFolderName_, "TkHMap_NumberOfOnTrackCluster",  0.0,true);
-    tkhisto_NumOffTrack     = new TkHistoMap(ibooker , topFolderName_, "TkHMap_NumberOfOfffTrackCluster",0.0,true);
+    tkhisto_StoNCorrOnTrack = new TkHistoMap(ibooker , topFolderName_ ,"TkHMap_StoNCorrOnTrack", pu,es,        0.0,true);
+    tkhisto_NumOnTrack      = new TkHistoMap(ibooker , topFolderName_, "TkHMap_NumberOfOnTrackCluster",pu,es,  0.0,true);
+    tkhisto_NumOffTrack     = new TkHistoMap(ibooker , topFolderName_, "TkHMap_NumberOfOfffTrackCluster",pu,es, 0.0,true);
   }
   //******** TkHistoMaps
 
@@ -888,6 +889,7 @@ template <class T> void SiStripMonitorTrack::RecHitInfo(const T* tkrecHit, Local
   }
 
 //------------------------------------------------------------------------
+
 void SiStripMonitorTrack::AllClusters(const edm::Event& ev, const edm::EventSetup& es)
 {
 

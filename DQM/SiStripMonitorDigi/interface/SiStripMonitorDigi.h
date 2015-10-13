@@ -119,7 +119,7 @@ class SiStripMonitorDigi : public DQMEDAnalyzer {
    
  private:
   
-
+  PolyUtil* pu ;
   DQMStore* dqmStore_;
   edm::ParameterSet conf_;
   std::vector<edm::EDGetTokenT<edm::DetSetVector<SiStripDigi> > > digiProducerTokenList;

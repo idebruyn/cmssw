@@ -180,7 +180,7 @@ std::string TkHistoMap::folderDefinition(std::string& path, std::string& MapName
     folderOrg.setSiStripFolderName(path);
 
     SiStripDetId::SubDetector subDet;
-    uint32_t subdetlayer = 0, side = 0;
+    uint32_t subdetlayer, side;
     tkdetmap_->getSubDetLayerSide(layer,subDet,subdetlayer,side);
     folderOrg.getSubDetLayerFolderName(ss,subDet,subdetlayer,side);
     
@@ -208,7 +208,7 @@ void TkHistoMap::fill(uint32_t& detid,float value){
   int16_t layer=tkdetmap_->FindLayer(detid , cached_detid , cached_layer , cached_XYbin);
   TkLayerMap::XYbin xybin = tkdetmap_->getXY(detid , cached_detid , cached_layer , cached_XYbin);
 #ifdef debug_TkHistoMap
-  LogTrace("TkHistoMap") << "[TkHistoMap::fill] Fill detid " << detid << " Layer " << layer << " value " << value << " ix,iy "  << xybin.ix << " " << xybin.iy  << " " << xybin.x << " " << xybin.y << " " << tkHistoMap_[layer]->getTProfile2D()->GetName();
+  LogTrace("TkHistoMap") << "[TkHistoMap::fill] Fill detid " << detid << " Layer " << layer << " value " << value << " ix,iy "  << xybin.ix << " " << xybin.iy  << " " << xybin.x << "" << xybin.y << " " << tkHistoMap_[layer]->getTProfile2D()->GetName();
 #endif
   tkHistoMap_[layer]->getTProfile2D()->Fill(xybin.x,xybin.y,value);
 

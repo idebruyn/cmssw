@@ -38,6 +38,7 @@ class TH1D;
 class TH2F;
 class TH2S;
 class TH2D;
+class TH2Poly;
 class TH3F;
 class TProfile;
 class TProfile2D;
@@ -133,6 +134,12 @@ class DQMStore
     MonitorElement * book2D(Args && ... args) {
       return owner_->book2D(std::forward<Args>(args)...);
     }
+     // for the supported syntaxes, see the declarations of DQMStore::book2D
+    template <typename... Args>
+    MonitorElement * bookTH2Poly(Args && ... args) {
+      return owner_->bookTH2Poly(std::forward<Args>(args)...);
+    }
+
 
     // for the supported syntaxes, see the declarations of DQMStore::book2S
     template <typename... Args>
@@ -362,10 +369,21 @@ class DQMStore
                                               const char *title,
                                               int nchX, double lowX, double highX,
                                               int nchY, double lowY, double highY);
+  MonitorElement *              bookTH2Poly  (const char *name,
+                                              const char *title,
+                                              double lowX, double highX,
+                                              double lowY, double highY);
+ 
   MonitorElement *              book2D       (const std::string &name,
                                               const std::string &title,
                                               int nchX, double lowX, double highX,
                                               int nchY, double lowY, double highY);
+  
+  MonitorElement *              bookTH2Poly  (const std::string &name,
+                                              const std::string &title,
+                                              double lowX, double highX,
+                                              double lowY, double highY);
+ 
   MonitorElement *              book2D       (const char *name,
                                               const char *title,
                                               int nchX, const float *xbinsize,
@@ -375,7 +393,9 @@ class DQMStore
                                               int nchX, const float *xbinsize,
                                               int nchY, const float *ybinsize);
   MonitorElement *              book2D       (const char *name, TH2F *h);
+ MonitorElement *              bookTH2Poly  (const char *name, TH2Poly *h);
   MonitorElement *              book2D       (const std::string &name, TH2F *h);
+ MonitorElement *              bookTH2Poly  (const std::string &name, TH2Poly *h);
 
   MonitorElement *              book2S       (const char *name,
                                               const char *title,
@@ -656,6 +676,7 @@ class DQMStore
   MonitorElement *              book1S(const std::string &dir, const std::string &name, TH1S *h);
   MonitorElement *              book1DD(const std::string &dir, const std::string &name, TH1D *h);
   MonitorElement *              book2D(const std::string &dir, const std::string &name, TH2F *h);
+  MonitorElement *              bookTH2Poly(const std::string &dir, const std::string &name, TH2Poly *h); 
   MonitorElement *              book2S(const std::string &dir, const std::string &name, TH2S *h);
   MonitorElement *              book2DD(const std::string &dir, const std::string &name, TH2D *h);
   MonitorElement *              book3D(const std::string &dir, const std::string &name, TH3F *h);
@@ -668,6 +689,7 @@ class DQMStore
   static void                   collate1S(MonitorElement *me, TH1S *h, unsigned verbose);
   static void                   collate1DD(MonitorElement *me, TH1D *h, unsigned verbose);
   static void                   collate2D(MonitorElement *me, TH2F *h, unsigned verbose);
+  static void                   collateTH2Poly(MonitorElement *me, TH2Poly *h, unsigned verbose);
   static void                   collate2S(MonitorElement *me, TH2S *h, unsigned verbose);
   static void                   collate2DD(MonitorElement *me, TH2D *h, unsigned verbose);
   static void                   collate3D(MonitorElement *me, TH3F *h, unsigned verbose);

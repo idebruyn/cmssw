@@ -820,7 +820,9 @@ DQMStore::book(const std::string &dir, const std::string &name,
     if (findObject(refdir, name))
     {
       me->data_.flags |= DQMNet::DQM_PROP_HAS_REFERENCE;
+     
     }
+
     // Return the monitor element.
     return me;
   }
@@ -1084,6 +1086,14 @@ DQMStore::book2D(const std::string &dir, const std::string &name, TH2F *h)
   return book(dir, name, "book2D", MonitorElement::DQM_KIND_TH2F, h, collate2D);
 }
 
+// -------------------------------------------------------------------
+/// Book 2D histogram based on TH2Poly.
+MonitorElement *
+DQMStore::bookTH2Poly(const std::string &dir, const std::string &name, TH2Poly *h)
+{
+  return book(dir, name, "bookTH2Poly", MonitorElement::DQM_KIND_TH2POLY, h, collateTH2Poly);
+}
+
 /// Book 2D histogram based on TH2S.
 MonitorElement *
 DQMStore::book2S(const std::string &dir, const std::string &name, TH2S *h)
@@ -1111,6 +1121,17 @@ DQMStore::book2D(const char *name, const char *title,
 
 /// Book 2D histogram.
 MonitorElement *
+DQMStore::bookTH2Poly(const char *name, const char *title,
+		      double lowX, double highX,
+		      double lowY, double highY)
+{
+  return bookTH2Poly(pwd_, name, new TH2Poly(name, title,
+					lowX, highX,
+					lowY, highY));
+}
+
+/// Book 2D histogram.
+MonitorElement *
 DQMStore::book2D(const std::string &name, const std::string &title,
                  int nchX, double lowX, double highX,
                  int nchY, double lowY, double highY)
@@ -1118,6 +1139,16 @@ DQMStore::book2D(const std::string &name, const std::string &title,
   return book2D(pwd_, name, new TH2F(name.c_str(), title.c_str(),
                                      nchX, lowX, highX,
                                      nchY, lowY, highY));
+}
+/// Book 2D histogram.
+MonitorElement *
+DQMStore::bookTH2Poly(const std::string &name, const std::string &title,
+		      double lowX, double highX,
+		      double lowY, double highY)
+{
+  return bookTH2Poly(pwd_, name, new TH2Poly(name.c_str(), title.c_str(),
+					     lowX, highX,
+					     lowY, highY));
 }
 
 /// Book 2S histogram.
@@ -1188,12 +1219,26 @@ DQMStore::book2D(const char *name, TH2F *source)
 {
   return book2D(pwd_, name, static_cast<TH2F *>(source->Clone(name)));
 }
+/// Book 2D histogram by cloning an existing histogram.
+MonitorElement *
+DQMStore::bookTH2Poly(const char *name, TH2Poly *source)
+{
+  return bookTH2Poly(pwd_, name, static_cast<TH2Poly *>(source->Clone(name)));
+}
 
 /// Book 2D histogram by cloning an existing histogram.
 MonitorElement *
 DQMStore::book2D(const std::string &name, TH2F *source)
 {
   return book2D(pwd_, name, static_cast<TH2F *>(source->Clone(name.c_str())));
+}
+
+
+/// Book 2D histogram by cloning an existing histogram.
+MonitorElement *
+DQMStore::bookTH2Poly(const std::string &name, TH2Poly *source)
+{
+  return bookTH2Poly(pwd_, name, static_cast<TH2Poly *>(source->Clone(name.c_str())));
 }
 
 /// Book 2DS histogram by cloning an existing histogram.
@@ -1564,6 +1609,13 @@ DQMStore::collate2D(MonitorElement *me, TH2F *h, unsigned verbose)
 {
   if (checkBinningMatches(me,h,verbose))
     me->getTH2F()->Add(h);
+}
+
+void
+DQMStore::collateTH2Poly(MonitorElement *me, TH2Poly *h,unsigned verbose)
+{
+  if (checkBinningMatches(me,h , verbose))
+    me->getTH2Poly()->Add(h,1);
 }
 
 void
@@ -2186,8 +2238,19 @@ DQMStore::extract(TObject *obj, const std::string &dir,
       me = book2DD(dir, h->GetName(), (TH2D *) h->Clone());
     else if (overwrite)
       me->copyFrom(h);
-    else if (isCollateME(me) || collateHistograms)
-      collate2DD(me, h, verbose_);
+    else if (isCollateME(me) || collateHistograms_)
+      collate2DD(me, h , verbose_);
+    refcheck = me;
+  }
+else if (TH2Poly *h = dynamic_cast<TH2Poly *>(obj))
+  {
+    MonitorElement *me = findObject(dir, h->GetName());
+    if (! me)
+      me = bookTH2Poly(dir, h->GetName(), (TH2Poly *) h->Clone());
+    else if (overwrite)
+      me->copyFrom(h);
+    else if (isCollateME(me) || collateHistograms_)
+      collateTH2Poly(me, h, verbose_);
     refcheck = me;
   }
   else if (TH3F *h = dynamic_cast<TH3F *>(obj))
@@ -3445,6 +3508,11 @@ DQMStore::scaleElements(void)
       case MonitorElement::DQM_KIND_TH2D:
         {
           me.getTH2D()->Scale(factor);
+          break;
+        }
+      case MonitorElement::DQM_KIND_TH2POLY:
+        {
+          me.getTH2Poly()->Scale(factor);
           break;
         }
       case MonitorElement::DQM_KIND_TH3F:

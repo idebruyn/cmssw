@@ -20,8 +20,10 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TString.h"
+#include "THashList.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH2Poly.h"
 #include "TProfile.h"
 
 // user include files
@@ -65,6 +67,33 @@
 #include "format.h"
 
 namespace {
+  //utility function to check the consistency of the axis labels
+  //taken from TH1::CheckBinLabels
+  bool CheckBinLabels(const TAxis* a1, const TAxis * a2)
+  {
+    // check that axis have same labels
+    THashList *l1 = (const_cast<TAxis*>(a1))->GetLabels();
+    THashList *l2 = (const_cast<TAxis*>(a2))->GetLabels();
+    
+    if (!l1 && !l2 )
+      return true;
+    if (!l1 ||  !l2 ) {
+      return false;
+    }
+    // check now labels sizes  are the same
+    if (l1->GetSize() != l2->GetSize() ) {
+      return false;
+    }
+    for (int i = 1; i <= a1->GetNbins(); ++i) {
+      TString label1 = a1->GetBinLabel(i);
+      TString label2 = a2->GetBinLabel(i);
+      if (label1 != label2) {
+	return false;
+      }
+    }
+    return true;
+  }
+      
   //adapter functions
   MonitorElement* createElement(DQMStore& iStore, const char* iName, TH1F* iHist) {
     //std::cout <<"create: hist size "<<iName <<" "<<iHist->GetEffectiveEntries()<<std::endl;
@@ -129,8 +158,14 @@ namespace {
   MonitorElement* createElement(DQMStore& iStore, const char* iName, TH2D* iHist) {
     return iStore.book2DD(iName, iHist);
   }
+  MonitorElement* createElement(DQMStore& iStore, const char* iName, TH2Poly* iHist) {
+    return iStore.bookTH2Poly(iName, iHist);
+  }
   void mergeWithElement(MonitorElement* iElement, TH2D* iHist) {
     mergeTogether(iElement->getTH2D(),iHist);
+  }
+  void mergeWithElement(MonitorElement* iElement, TH2Poly* iHist) {
+    mergeTogether(iElement->getTH2Poly(),iHist);
   }
   MonitorElement* createElement(DQMStore& iStore, const char* iName, TH3F* iHist) {
     return iStore.book3D(iName, iHist);
@@ -476,6 +511,7 @@ DQMRootSource::DQMRootSource(edm::ParameterSet const& iPSet, const edm::InputSou
     m_treeReaders[kTH2FIndex].reset(new TreeObjectReader<TH2F>());
     m_treeReaders[kTH2SIndex].reset(new TreeObjectReader<TH2S>());
     m_treeReaders[kTH2DIndex].reset(new TreeObjectReader<TH2D>());
+    m_treeReaders[kTH2PolyIndex].reset(new TreeObjectReader<TH2Poly>());
     m_treeReaders[kTH3FIndex].reset(new TreeObjectReader<TH3F>());
     m_treeReaders[kTProfileIndex].reset(new TreeObjectReader<TProfile>());
     m_treeReaders[kTProfile2DIndex].reset(new TreeObjectReader<TProfile2D>());

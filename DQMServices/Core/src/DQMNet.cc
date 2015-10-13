@@ -338,6 +338,10 @@ DQMNet::reinstateObject(DQMStore *store, Object &o)
     obj = store->book2DD(name, dynamic_cast<TH2D *>(o.object));
     break;
 
+  case DQM_PROP_TYPE_TH2POLY:
+    obj = store->bookTH2Poly(name, dynamic_cast<TH2D *>(o.object));
+    break;
+
   case DQM_PROP_TYPE_TH3F:
     obj = store->book3D(name, dynamic_cast<TH3F *>(o.object));
     break;

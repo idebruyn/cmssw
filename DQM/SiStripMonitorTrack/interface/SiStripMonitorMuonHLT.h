@@ -114,7 +114,7 @@ class SiStripMonitorMuonHLT : public DQMEDAnalyzer {
       // ----------member data ---------------------------
 
       edm::ParameterSet parameters_;
-
+      PolyUtil *pu ;
       std::string monitorName_;
       std::string outputFile_;
       int counterEvt_;      ///counter

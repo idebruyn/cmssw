@@ -44,6 +44,7 @@ SiStripMonitorCluster::SiStripMonitorCluster(const edm::ParameterSet& iConfig)
   : conf_(iConfig), show_mechanical_structure_view(true), show_readout_view(false), show_control_view(false), select_all_detectors(false), reset_each_run(false), m_cacheID_(0)
 					    //  , genTriggerEventFlag_(new GenericTriggerEventFlag(iConfig, consumesCollector()))
 {
+    pu = new PolyUtil();
 
   // initialize
   passBPTXfilter_ = true;
@@ -242,13 +243,13 @@ void SiStripMonitorCluster::createMEs(const edm::EventSetup& es , DQMStore::IBoo
     folder_organizer.setSiStripFolderName(topFolderName_);
     folder_organizer.setSiStripFolder();
 
-
+   
     // Create TkHistoMap for Cluster
     if (clustertkhistomapon) {
       //      std::cout << "[SiStripMonitorCluster::createMEs] topFolderName_: " << topFolderName_ << "     ";
       if ( (topFolderName_ == "SiStrip") or (std::string::npos != topFolderName_.find("HLT")) )
-	tkmapcluster = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NumberOfCluster",0.,true);
-      else tkmapcluster = new TkHistoMap(ibooker , topFolderName_+"/TkHistoMap","TkHMap_NumberOfCluster",0.,false);
+	tkmapcluster = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NumberOfCluster",pu,es,0.,true);
+      else tkmapcluster = new TkHistoMap(ibooker , topFolderName_+"/TkHistoMap","TkHMap_NumberOfCluster",pu,es,0.,false);
     }
 
     // loop over detectors and book MEs
@@ -585,6 +586,7 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 	  (mod_single.NumberOfClusters)->Fill(0.); // no clusters for this detector module,fill histogram with 0
 	}
 	if(clustertkhistomapon) tkmapcluster->fill(detid,0.);
+	if(clustertkhistomapon) tkmapcluster->fillPoly(detid,0.,pu);
 	if (found_layer_me && layerswitchnumclusterprofon) layer_single.LayerNumberOfClusterProfile->Fill(iDet, 0.0);
 	continue; // no clusters for this detid => jump to next step of loop
       }
@@ -596,6 +598,7 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
       // Filling TkHistoMap with number of clusters for each module
       if(clustertkhistomapon) {
 	tkmapcluster->fill(detid,static_cast<float>(cluster_detset.size()));
+	tkmapcluster->fillPoly(detid,static_cast<float>(cluster_detset.size()),pu);
       }
 
       if(moduleswitchncluson && found_module_me && (mod_single.NumberOfClusters != NULL)){ // nr. of clusters per module
