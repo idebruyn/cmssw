@@ -69,6 +69,7 @@ OuterTrackerMCTruth::OuterTrackerMCTruth(const edm::ParameterSet& iConfig)
   tagTTTracks_ = conf_.getParameter< edm::InputTag >("TTTracks");
   tagTTTrackMCTruth_ = conf_.getParameter< edm::InputTag >("TTTrackMCTruth");
   HQDelim_ = conf_.getParameter<int>("HQDelim");
+  useTracking_ = conf_.getUntrackedParameter<bool>("useTracking",true);
   verbosePlots_ = conf_.getUntrackedParameter<bool>("verbosePlots",false);
 }
 
@@ -121,7 +122,7 @@ OuterTrackerMCTruth::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle< std::vector< TTTrack< Ref_PixelDigi_ > > >            PixelDigiTTTrackHandle;
   iEvent.getByLabel( tagTTClusters_, PixelDigiTTClusterHandle );
   iEvent.getByLabel( tagTTStubs_, PixelDigiTTStubHandle );
-  iEvent.getByLabel( tagTTTracks_, PixelDigiTTTrackHandle );
+  if (useTracking_) iEvent.getByLabel( tagTTTracks_, PixelDigiTTTrackHandle );
   
   /// Track Trigger MC Truth
   edm::Handle< TTClusterAssociationMap< Ref_PixelDigi_ > > MCTruthTTClusterHandle;
@@ -129,7 +130,7 @@ OuterTrackerMCTruth::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle< TTTrackAssociationMap< Ref_PixelDigi_ > >   MCTruthTTTrackHandle;
   iEvent.getByLabel( tagTTClusterMCTruth_, MCTruthTTClusterHandle );
   iEvent.getByLabel( tagTTStubMCTruth_, MCTruthTTStubHandle );
-  iEvent.getByLabel( tagTTTrackMCTruth_, MCTruthTTTrackHandle );
+  if (useTracking_) iEvent.getByLabel( tagTTTrackMCTruth_, MCTruthTTTrackHandle );
   
   
   /// Go on only if there are TrackingParticles
@@ -299,7 +300,7 @@ OuterTrackerMCTruth::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       }
       
       
-      if ( verbosePlots_ )
+      if ( useTracking_ && verbosePlots_ )
       {
         /// Check if the TP produced any tracks
         std::vector< edm::Ptr< TTTrack< Ref_PixelDigi_ > > > theseTracks =  MCTruthTTTrackHandle->findTTTrackPtrs( tempTPPtr );
@@ -477,7 +478,7 @@ OuterTrackerMCTruth::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   } /// End of loop over TTStubs
   
   
-  if ( verbosePlots_ )
+  if ( useTracking_ && verbosePlots_ )
   {
     /// Go on only if there are TTTracks from PixelDigis
     if ( PixelDigiTTTrackHandle->size() > 0 )
@@ -855,8 +856,8 @@ OuterTrackerMCTruth::beginRun(const edm::Run& run, const edm::EventSetup& es)
   Stub_PID->setAxisTitle("# L1 Stubs", 2);
   
   
-    /// Plots for debugging
-  if ( verbosePlots_ )
+  /// Plots for debugging
+  if ( useTracking_ && verbosePlots_ )
   {
     // TTTrack Chi2 vs TPart Eta
     edm::ParameterSet psTrack_Chi2_TPart_Eta =  conf_.getParameter<edm::ParameterSet>("TH2Track_Chi2");
@@ -905,8 +906,10 @@ OuterTrackerMCTruth::beginRun(const edm::Run& run, const edm::EventSetup& es)
         psTrack_Chi2Red_TPart_Eta.getParameter<double>("ymax"));
     Track_HQ_Chi2Red_TPart_Eta->setAxisTitle("TPart #eta", 1);
     Track_HQ_Chi2Red_TPart_Eta->setAxisTitle("L1 Track #chi^{2}/ndf", 2);
-    
-    
+  } /// End verbosePlots (tracking)
+  
+  if (verbosePlots_)
+  { 
     /// Stub properties compared to TParticles
     dqmStore_->setCurrentFolder(topFolderName_+"/TTStubVSTPart/");
 
@@ -1149,8 +1152,10 @@ OuterTrackerMCTruth::beginRun(const edm::Run& run, const edm::EventSetup& es)
         psStub_W_Pt.getParameter<double>("ymax"));
     Stub_W_TPart_Pt_AllDisks->setAxisTitle("TPart p_{T} [GeV]", 1);
     Stub_W_TPart_Pt_AllDisks->setAxisTitle("L1 Stub Width", 2);
-    
-    
+  } /// End verbosePlots
+  
+  if ( useTracking_ && verbosePlots_ )
+  {
     /// Track properties compared to TParticles
     dqmStore_->setCurrentFolder(topFolderName_+"/TTTrackVSTPart/LQ/");
 
@@ -1407,7 +1412,7 @@ OuterTrackerMCTruth::beginRun(const edm::Run& run, const edm::EventSetup& es)
     Track_HQ_VtxZ0Res_TPart_Eta->setAxisTitle("TPart #eta", 1);
     Track_HQ_VtxZ0Res_TPart_Eta->setAxisTitle("L1 Track Vertex z - TPart Vertex z [cm]", 2);
     
-  } /// End verbosePlots
+  } /// End verbosePlots (tracking)
   	
 }//end of method
 

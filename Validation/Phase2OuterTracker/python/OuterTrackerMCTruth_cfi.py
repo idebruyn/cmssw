@@ -10,6 +10,7 @@ OuterTrackerMCTruth = cms.EDAnalyzer('OuterTrackerMCTruth',
     TTTracks         = cms.InputTag("TTTracksFromPixelDigis", "Level1TTTracks"),
     TTTrackMCTruth   = cms.InputTag("TTTrackAssociatorFromPixelDigis", "Level1TTTracks"),    
     HQDelim          = cms.int32(4),
+    useTracking      = cms.untracked.bool(False),
     verbosePlots     = cms.untracked.bool(False),
 
 
