@@ -8,6 +8,7 @@
 
 FEDHistograms::FEDHistograms()
 {
+  pu = new PolyUtil();
 }
 
 FEDHistograms::~FEDHistograms()
@@ -323,7 +324,7 @@ MonitorElement * FEDHistograms::getFedvsAPVpointer()
   return fedIdVsApvId_.monitorEle;
 }
 
-void FEDHistograms::bookTopLevelHistograms(DQMStore::IBooker & ibooker , std::string topFolderName)
+void FEDHistograms::bookTopLevelHistograms(DQMStore::IBooker & ibooker , const edm::EventSetup& es , std::string topFolderName)
 {
   //get FED IDs
   const unsigned int siStripFedIdMin = FEDNumbering::MINSiStripFEDID;
@@ -739,7 +740,7 @@ void FEDHistograms::bookTopLevelHistograms(DQMStore::IBooker & ibooker , std::st
 
   //book map after, as it creates a new folder...
   if (tkMapConfig_.enabled){
-    tkmapFED_ = new TkHistoMap(topFolderName,"TkHMap_FractionOfBadChannels",0.,true);
+    tkmapFED_ = new TkHistoMap(ibooker, topFolderName,"TkHMap_FractionOfBadChannels", pu , es, 0.,true);
   }
   else tkmapFED_ = 0;
 

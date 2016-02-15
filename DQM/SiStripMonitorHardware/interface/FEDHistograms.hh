@@ -77,7 +77,7 @@ public:
   bool cmHistosEnabled();
 
    //book the top level histograms
-  void bookTopLevelHistograms(DQMStore::IBooker & , std::string topFolderName = "SiStrip");
+  void bookTopLevelHistograms(DQMStore::IBooker & ,const edm::EventSetup & , std::string topFolderName = "SiStrip");
 
   //book individual FED histograms or book all FED level histograms at once
   void bookFEDHistograms(DQMStore::IBooker & , unsigned int fedId,
@@ -97,6 +97,8 @@ public:
 protected:
   
 private:
+  
+  PolyUtil* pu ;
 
   //counting histograms (histogram of number of problems per event)
 
