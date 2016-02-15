@@ -1132,7 +1132,10 @@ bool SiStripMonitorTrack::clusterInfos(SiStripClusterInfo* cluster, const uint32
     if (TkHistoMap_On_) {
       uint32_t adet=cluster->detId();
       tkhisto_NumOnTrack->add(adet,1.);
-      if(noise > 0.0) tkhisto_StoNCorrOnTrack->fill(adet,cluster->signalOverNoise()*cosRZ);
+      if(noise > 0.0){
+        tkhisto_StoNCorrOnTrack->fill(adet,cluster->signalOverNoise()*cosRZ);
+        tkhisto_StoNCorrOnTrack->fillPoly(adet,cluster->signalOverNoise()*cosRZ, pu);
+      }
       if(noise == 0.0)
 	LogDebug("SiStripMonitorTrack") << "Module " << detid << " in Event " << eventNb << " noise " << noise << std::endl;
     }
