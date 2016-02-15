@@ -1218,8 +1218,8 @@ void SiStripMonitorDigi::AddApvShotsToSubDet(const std::vector<APVShot> & module
 void SiStripMonitorDigi::FillApvShotsMap(TkHistoMap* the_map, const std::vector<APVShot> & shots, uint32_t id ,int mode){
   
   for (uint i=0; i<shots.size(); i++){
-    if (mode==1) the_map->fill(id,shots[i].nStrips()); //mode == 1 fill with strip multiplicity
-    if (mode==2) the_map->fill(id,shots[i].median()); // mode == 2 fill with charge median
+    if (mode==1) the_map->fill(id,shots[i].nStrips()), the_map->fillPoly(id,shots[i].nStrips(),pu); //mode == 1 fill with strip multiplicity
+    if (mode==2) the_map->fill(id,shots[i].median()), the_map->fillPoly(id,shots[i].median(),pu); // mode == 2 fill with charge median
   }
 }
 
