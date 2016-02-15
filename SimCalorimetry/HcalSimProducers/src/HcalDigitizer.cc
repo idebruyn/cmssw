@@ -37,6 +37,8 @@
 #include "SimDataFormats/CaloTest/interface/HcalTestNumbering.h"
 #include "DataFormats/HcalDetId/interface/HcalSubdetector.h"
 
+//#define DebugLog
+
 namespace HcalDigitizerImpl {
 
   template<typename SIPMDIGITIZER>
@@ -275,6 +277,7 @@ HcalDigitizer::HcalDigitizer(const edm::ParameterSet& ps, edm::ConsumesCollector
 
   edm::ParameterSet ps0 = ps.getParameter<edm::ParameterSet>("HcalReLabel");
   relabel_ = ps0.getUntrackedParameter<bool>("RelabelHits");
+//  std::cout << "Flag to see if Hit Relabeller to be initiated " << relabel_ << std::endl;
   if (relabel_) {
     theRelabeller=new HcalHitRelabeller(ps0.getUntrackedParameter<edm::ParameterSet>("RelabelRules"));
   }     
@@ -431,20 +434,43 @@ void HcalDigitizer::initializeEvent(edm::Event const& e, edm::EventSetup const& 
 
 }
 
-void HcalDigitizer::accumulateCaloHits(edm::Handle<std::vector<PCaloHit> > const& hcalHandle, edm::Handle<std::vector<PCaloHit> > const& zdcHandle, int bunchCrossing, CLHEP::HepRandomEngine* engine) {
+void HcalDigitizer::accumulateCaloHits(edm::Handle<std::vector<PCaloHit> > const& hcalHandle, edm::Handle<std::vector<PCaloHit> > const& zdcHandle, int bunchCrossing, CLHEP::HepRandomEngine* engine, const HcalTopology *htopoP) {
 
   // Step A: pass in inputs, and accumulate digirs
   if(isHCAL) {
-    std::vector<PCaloHit> hcalHits = *hcalHandle.product();
+    std::vector<PCaloHit> hcalHitsOrig = *hcalHandle.product();
+    std::vector<PCaloHit> hcalHits;
+    hcalHits.reserve(hcalHitsOrig.size());
+
     //evaluate darkening before relabeling
     if(m_HEDarkening || m_HFRecalibration){
-      darkening(hcalHits);
+      darkening(hcalHitsOrig);
     }
+    // Relabel PCaloHits if necessary
     if (relabel_) {
-      // Relabel PCaloHits
       edm::LogInfo("HcalDigitizer") << "Calling Relabeller";
-      theRelabeller->process(hcalHits);
+      theRelabeller->process(hcalHitsOrig);
     }
+    
+    //eliminate bad hits
+    for (unsigned int i=0; i< hcalHitsOrig.size(); i++) {
+      DetId id(hcalHitsOrig[i].id());
+      HcalDetId hid(id);
+      if (!htopoP->validHcal(hid)) {
+	edm::LogError("HcalDigitizer") << "bad hcal id found in digitizer. Skipping " << id.rawId() << std::endl;
+      } else {
+#ifdef DebugLog
+	std::cout << "HcalDigitizer format " << hid.oldFormat() << " for " << hid << std::endl;
+#endif
+        DetId newid = DetId(hid.newForm());
+#ifdef DebugLog
+	  std::cout << "Hit " << i << " out of " << hcalHits.size() << " " << std::hex << id.rawId() << " --> " << newid.rawId() << std::dec << " " << HcalDetId(newid.rawId()) << '\n';
+#endif
+        hcalHitsOrig[i].setID(newid.rawId());
+        hcalHits.push_back(hcalHitsOrig[i]);
+      }
+    }
+
     if(theHitCorrection != 0) {
       theHitCorrection->fillChargeSums(hcalHits);
     }
@@ -490,7 +516,11 @@ void HcalDigitizer::accumulate(edm::Event const& e, edm::EventSetup const& event
   e.getByLabel(hcalTag, hcalHandle);
   isHCAL = hcalHandle.isValid();
 
-  accumulateCaloHits(hcalHandle, zdcHandle, 0, engine);
+  edm::ESHandle<HcalTopology> htopo;
+  eventSetup.get<HcalRecNumberingRecord>().get(htopo);
+  const HcalTopology *htopoP=htopo.product();
+
+  accumulateCaloHits(hcalHandle, zdcHandle, 0, engine, htopoP);
 }
 
 void HcalDigitizer::accumulate(PileUpEventPrincipal const& e, edm::EventSetup const& eventSetup, CLHEP::HepRandomEngine* engine) {
@@ -505,7 +535,11 @@ void HcalDigitizer::accumulate(PileUpEventPrincipal const& e, edm::EventSetup co
   e.getByLabel(hcalTag, hcalHandle);
   isHCAL = hcalHandle.isValid();
 
-  accumulateCaloHits(hcalHandle, zdcHandle, e.bunchCrossing(), engine);
+  edm::ESHandle<HcalTopology> htopo;
+  eventSetup.get<HcalRecNumberingRecord>().get(htopo);
+  const HcalTopology *htopoP=htopo.product();
+
+  accumulateCaloHits(hcalHandle, zdcHandle, e.bunchCrossing(), engine, htopoP);
 }
 
 void HcalDigitizer::finalizeEvent(edm::Event& e, const edm::EventSetup& eventSetup, CLHEP::HepRandomEngine* engine) {
@@ -524,8 +558,9 @@ void HcalDigitizer::finalizeEvent(edm::Event& e, const edm::EventSetup& eventSet
     if(theHBHESiPMDigitizer)    theHBHESiPMDigitizer->run(*hbheResult, engine);
     if(theHBHEUpgradeDigitizer) {
       theHBHEUpgradeDigitizer->run(*hbheupgradeResult, engine);
-
-//      std::cout << "HcalDigitizer::finalizeEvent  theHBHEUpgradeDigitizer->run" << std::endl;     
+#ifdef DebugLog
+      std::cout << "HcalDigitizer::finalizeEvent  theHBHEUpgradeDigitizer->run" << std::endl; 
+#endif
     }
   }
   if(isHCAL&&hogeo) {
@@ -547,7 +582,7 @@ void HcalDigitizer::finalizeEvent(edm::Event& e, const edm::EventSetup& eventSet
   edm::LogInfo("HcalDigitizer") << "HCAL HBHE upgrade digis : " << hbheupgradeResult->size();
   edm::LogInfo("HcalDigitizer") << "HCAL HF upgrade digis : " << hfupgradeResult->size();
 
-  /*
+#ifdef DebugLog
   std::cout << std::endl;
   std::cout << "HCAL HBHE digis : " << hbheResult->size() << std::endl;
   std::cout << "HCAL HO   digis : " << hoResult->size() << std::endl;
@@ -557,7 +592,7 @@ void HcalDigitizer::finalizeEvent(edm::Event& e, const edm::EventSetup& eventSet
 	    << std::endl;
   std::cout << "HCAL HF   upgrade digis : " << hfupgradeResult->size()
 	    << std::endl;
-  */
+#endif
 
   // Step D: Put outputs into event
   e.put(hbheResult);
@@ -566,9 +601,9 @@ void HcalDigitizer::finalizeEvent(edm::Event& e, const edm::EventSetup& eventSet
   e.put(zdcResult);
   e.put(hbheupgradeResult,"HBHEUpgradeDigiCollection");
   e.put(hfupgradeResult, "HFUpgradeDigiCollection");
-
-//  std::cout << std::endl << "========>  HcalDigitizer e.put " << std::endl <<  std::endl;
-
+#ifdef DebugLog
+  std::cout << std::endl << "========>  HcalDigitizer e.put " << std::endl <<  std::endl;
+#endif
   if(theHitCorrection) {
     theHitCorrection->clear();
   }
@@ -636,8 +671,9 @@ void  HcalDigitizer::updateGeometry(const edm::EventSetup & eventSetup) {
   theZDCDigitizer->setDetIds(zdcCells); 
   if(theHBHEUpgradeDigitizer) {
     theHBHEUpgradeDigitizer->setDetIds(theHBHEDetIds);
-
-//    std::cout << " HcalDigitizer::updateGeometry  theHBHEUpgradeDigitizer->setDetIds(theHBHEDetIds)"<< std::endl;   
+#ifdef DebugLog
+    std::cout << " HcalDigitizer::updateGeometry  theHBHEUpgradeDigitizer->setDetIds(theHBHEDetIds)"<< std::endl;   
+#endif
   }
 
 }
@@ -691,33 +727,31 @@ void HcalDigitizer::buildHOSiPMCells(const std::vector<DetId>& allCells, const e
   }
 }
 
-void HcalDigitizer::darkening(std::vector<PCaloHit>& hcalHits){
+void HcalDigitizer::darkening(std::vector<PCaloHit>& hcalHits) {
 
   for (unsigned int ii=0; ii<hcalHits.size(); ++ii) {
     uint32_t tmpId = hcalHits[ii].id();
     int det, z, depth, ieta, phi, lay;
     HcalTestNumbering::unpackHcalIndex(tmpId,det,z,depth,ieta,phi,lay);
 	
-	bool darkened = false;
-	float dweight = 1.;
+    bool darkened = false;
+    float dweight = 1.;
 	
-	//HE darkening
-	if(det==int(HcalEndcap) && m_HEDarkening){
-	  dweight = m_HEDarkening->degradation(deliveredLumi,ieta,lay-2);//NB:diff. layer count
-	  darkened = true;
-    }
-	
-	//HF darkening - approximate: invert recalibration factor
-	else if(det==int(HcalForward) && m_HFRecalibration){
-	  dweight = 1.0/m_HFRecalibration->getCorr(ieta,depth,deliveredLumi);
-	  darkened = true;
+    if(det==int(HcalEndcap) && m_HEDarkening){
+      //HE darkening
+      dweight = m_HEDarkening->degradation(deliveredLumi,ieta,lay-2);//NB:diff. layer count
+      darkened = true;
+    } else if(det==int(HcalForward) && m_HFRecalibration){
+      //HF darkening - approximate: invert recalibration factor
+      dweight = 1.0/m_HFRecalibration->getCorr(ieta,depth,deliveredLumi);
+      darkened = true;
     }
 	
     //create new hit with darkened energy
-	//if(darkened) hcalHits[ii] = PCaloHit(hcalHits[ii].energyEM()*dweight,hcalHits[ii].energyHad()*dweight,hcalHits[ii].time(),hcalHits[ii].geantTrackId(),hcalHits[ii].id());
+    //if(darkened) hcalHits[ii] = PCaloHit(hcalHits[ii].energyEM()*dweight,hcalHits[ii].energyHad()*dweight,hcalHits[ii].time(),hcalHits[ii].geantTrackId(),hcalHits[ii].id());
 	
-	//reset hit energy
-	if(darkened) hcalHits[ii].setEnergy(hcalHits[ii].energy()*dweight);	
+    //reset hit energy
+    if(darkened) hcalHits[ii].setEnergy(hcalHits[ii].energy()*dweight);	
   }
   
 }

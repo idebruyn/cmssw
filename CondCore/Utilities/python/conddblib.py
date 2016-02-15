@@ -149,12 +149,15 @@ database_help = '''
       /absolute/path/to/file.db  ===  sqlite:////absolute/path/to/file.db
 '''
 
-
 class Synchronization(Enum):
-    offline = 'Offline'
-    hlt     = 'HLT'
-    prompt  = 'Prompt'
-
+    any        = 'any'
+    validation = 'validation'
+    mc         = 'mc'
+    runmc      = 'runmc'
+    hlt        = 'hlt'
+    express    = 'express'
+    prompt     = 'prompt'
+    pcl        = 'pcl'
 
 class TimeType(Enum):
     run  = 'Run'
@@ -307,7 +310,9 @@ class Connection(object):
         '''Tests whether the current DB looks like a valid CMS Conditions one.
         '''
         engine_connection = self.engine.connect()
-        ret = all([self.engine.dialect.has_table(engine_connection, table.__tablename__) for table in [Tag, IOV, Payload, GlobalTag, GlobalTagMap]])
+        #ret = all([self.engine.dialect.has_table(engine_connection, table.__tablename__) for table in [Tag, IOV, Payload, GlobalTag, GlobalTagMap]])
+        # temporarely avoid the check on the GT tables - there are releases in use where C++ does not create these tables.
+        ret = all([self.engine.dialect.has_table(engine_connection, table.__tablename__) for table in [Tag, IOV, Payload]])
         engine_connection.close()
         return ret
 

@@ -57,13 +57,14 @@ public:
     /// typedef for a single object template
     struct ObjectParameter
     {
-      unsigned int etThreshold;
+      unsigned int etLowThreshold;
+      unsigned int etHighThreshold;
       bool energyOverflow;
 
-      unsigned int phiWindowLower;
-      unsigned int phiWindowUpper;
-      unsigned int phiWindowVetoLower;
-      unsigned int phiWindowVetoUpper;
+      unsigned int phiWindow1Lower;
+      unsigned int phiWindow1Upper;
+      unsigned int phiWindow2Lower;
+      unsigned int phiWindow2Upper;
 
       // two words used only for ETM (ETM phi has 72 bins - two 64-bits words)
       // one word used for HTM

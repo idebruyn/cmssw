@@ -4,6 +4,10 @@
 
 int main()
 {
+
+  testSerialization<L1TMuonOverlapParams>();  
+  testSerialization<L1TMuonBarrelParams>();  
+  testSerialization<L1TMuonGlobalParams>();  
   testSerialization<l1t::CaloParams>();
   testSerialization<l1t::CaloConfig>();
     testSerialization<L1CaloEcalScale>();
@@ -123,6 +127,15 @@ int main()
     testSerialization<std::vector<std::vector<L1GtHfRingEtSumsTemplate>>>();
     testSerialization<std::vector<std::vector<L1GtJetCountsTemplate>>>();
     testSerialization<std::vector<std::vector<L1GtMuonTemplate>>>();
+    testSerialization<L1TUtmAlgorithm>();
+    testSerialization<L1TUtmBin>();
+    testSerialization<L1TUtmCondition>();
+    testSerialization<L1TUtmCut>();
+    testSerialization<L1TUtmCutValue>();
+    testSerialization<L1TUtmObject>();
+    testSerialization<L1TUtmScale>();
+    testSerialization<L1TUtmTriggerMenu>();
+
 
     return 0;
 }

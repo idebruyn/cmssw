@@ -8,17 +8,17 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "L1Trigger/L1TCalorimeter/interface/Stage2Layer2JetSumAlgorithmFirmware.h"
 
-l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::Stage2Layer2JetSumAlgorithmFirmwareImp1(CaloParams* params) :
+l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::Stage2Layer2JetSumAlgorithmFirmwareImp1(CaloParamsHelper* params) :
   params_(params)
 {
-  etSumEtThresholdHwEt_ = floor(params_->etSumEtThreshold(0)/params_->jetLsb());
-  etSumEtThresholdHwMet_ = floor(params_->etSumEtThreshold(2)/params_->jetLsb());
+  etSumEtThresholdHwEt_ = floor(params_->etSumEtThreshold(1)/params_->jetLsb());
+  etSumEtThresholdHwMet_ = floor(params_->etSumEtThreshold(3)/params_->jetLsb());
 
-  etSumEtaMinEt_ = params_->etSumEtaMin(0);
-  etSumEtaMaxEt_ = params_->etSumEtaMax(0);
+  etSumEtaMinEt_ = params_->etSumEtaMin(1);
+  etSumEtaMaxEt_ = params_->etSumEtaMax(1);
  
-  etSumEtaMinMet_ = params_->etSumEtaMin(2);
-  etSumEtaMaxMet_ = params_->etSumEtaMax(2);
+  etSumEtaMinMet_ = params_->etSumEtaMin(3);
+  etSumEtaMaxMet_ = params_->etSumEtaMax(3);
 }
 
 
@@ -31,7 +31,7 @@ l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::~Stage2Layer2JetSumAlgorithmFirmwa
 void l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::processEvent(const std::vector<l1t::Jet> & alljets, std::vector<l1t::EtSum> & htsums) 
 {
 
-  int etaMax=40, etaMin=1, phiMax=72, phiMin=1;
+  int etaMax=36, etaMin=1, phiMax=72, phiMin=1;
   
   // etaSide=1 is positive eta, etaSide=-1 is negative eta
   for (int etaSide=1; etaSide>=-1; etaSide-=2) {
@@ -63,8 +63,8 @@ void l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::processEvent(const std::vecto
 	if (!foundJet) continue;
 	
 	if (thisJet.hwPt()>etSumEtThresholdHwMet_ && thisJet.hwEta()>=etSumEtaMinMet_ && thisJet.hwEta()<=etSumEtaMaxMet_) {
-	  ringHx += (int32_t) ( thisJet.hwPt() * std::trunc ( 511. * cos ( 2 * M_PI * (72 - iphi) / 72.0 ) )) >> 10;
-	  ringHy += (int32_t) ( thisJet.hwPt() * std::trunc ( 511. * sin ( 2 * M_PI * iphi / 72.0 ) )) >> 10;
+	  ringHx += (int32_t) ( thisJet.hwPt() * std::trunc ( 511. * cos ( 2 * M_PI * (72 - (iphi-1)) / 72.0 ) )) >> 9;
+	  ringHy += (int32_t) ( thisJet.hwPt() * std::trunc ( 511. * sin ( 2 * M_PI * (iphi-1) / 72.0 ) )) >> 9;
 	}
 	
 	if (thisJet.hwPt()>etSumEtThresholdHwEt_ && thisJet.hwEta()>=etSumEtaMinEt_ && thisJet.hwEta()<=etSumEtaMaxEt_) {
@@ -72,9 +72,9 @@ void l1t::Stage2Layer2JetSumAlgorithmFirmwareImp1::processEvent(const std::vecto
 	}
       }
 
-      hx += (ringHx >> 5);
-      hy += (ringHy >> 5);
-      ht += (ringHt >> 5);
+      hx += ringHx;
+      hy += ringHy;
+      ht += ringHt;
       
     }
     

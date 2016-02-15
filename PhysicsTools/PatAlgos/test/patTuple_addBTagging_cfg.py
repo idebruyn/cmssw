@@ -48,6 +48,7 @@ btagDiscriminators = [
     ,'combinedMVABJetTags'
     ,'positiveCombinedMVABJetTags'
     ,'negativeCombinedMVABJetTags'
+    ,'combinedMVAV2BJetTags'
      # new candidate-based framework (supported with RECO/AOD/MiniAOD)
     ,'pfJetBProbabilityBJetTags'
     ,'pfJetProbabilityBJetTags'
@@ -104,9 +105,12 @@ btagDiscriminators = [
     ,'pfCombinedMVABJetTags'
     ,'pfPositiveCombinedMVABJetTags'
     ,'pfNegativeCombinedMVABJetTags'
+    ,'pfCombinedMVAV2BJetTags'
     #CTagging
     ,'pfCombinedCvsLJetTags'
     ,'pfCombinedCvsBJetTags'
+    #ChargeTagging
+    ,'pfChargeBJetTags'
 ]
 
 # uncomment the following lines to add ak4PFJets with new b-tags to your PAT output

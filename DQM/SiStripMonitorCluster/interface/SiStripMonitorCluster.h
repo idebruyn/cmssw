@@ -147,7 +147,11 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
 
   // TkHistoMap added
   TkHistoMap* tkmapcluster; 
+
   PolyUtil* pu ;
+
+  TkHistoMap* tkmapclusterch;
+
   int runNb, eventNb;
   int firstEvent;
   float trendVar;
@@ -194,6 +198,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   bool globalswitchcstripvscpix;
   bool globalswitchMultiRegions;
   bool clustertkhistomapon;
+  bool clusterchtkhistomapon;
   bool createTrendMEs;
   bool trendVsLs_;
   bool globalswitchnclusvscycletimeprof2don;

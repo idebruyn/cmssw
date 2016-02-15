@@ -35,7 +35,7 @@ class Reco(Scenario):
         """
         step = stepALCAPRODUCER(args['skims'])
         PhysicsSkimStep = ''
-        if (args.has_key("PhysicsSkims")) :
+        if ("PhysicsSkims" in args) :
             PhysicsSkimStep = stepSKIMPRODUCER(args['PhysicsSkims'])
         dqmStep= dqmSeq(args,'')
         options = Options()
@@ -49,7 +49,11 @@ class Reco(Scenario):
             for a in args['outputs']:
                 if a['dataTier'] == 'MINIAOD':
                     miniAODStep=',PAT' 
-                    options.runUnscheduled=True
+
+        """
+        Unscheduled for all
+        """
+        options.runUnscheduled=True
                     
 
         if 'customs' in args:
@@ -202,7 +206,7 @@ class Reco(Scenario):
         options.scenario = self.cbSc
         options.step = step
         options.conditions = args['globaltag'] if 'globaltag' in args else 'None'
-        if args.has_key('globalTagConnect') and args['globalTagConnect'] != '':
+        if 'globalTagConnect' in args and args['globalTagConnect'] != '':
             options.conditions += ','+args['globalTagConnect']
 
         options.triggerResultsProcess = 'RECO'

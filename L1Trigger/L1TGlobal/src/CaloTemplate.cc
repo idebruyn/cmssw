@@ -27,7 +27,6 @@
 //   base class
 
 #include "CondFormats/L1TObjects/interface/L1GtFwd.h"
-#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetupFwd.h"
 
 // forward declarations
 
@@ -108,13 +107,15 @@ void CaloTemplate::print(std::ostream& myCout) const
         myCout << std::endl;
         myCout << "  Template for object " << i << " [ hex ]" << std::endl;
         myCout << "    etThreshold       = "
-        << std::hex << m_objectParameter[i].etThreshold << std::endl;
+        << std::hex << m_objectParameter[i].etLowThreshold << "  " << m_objectParameter[i].etHighThreshold << std::endl;
         myCout << "    etaRange          = "
         << std::hex << m_objectParameter[i].etaRange << std::endl;
         myCout << "    phiRange          = "
         << std::hex << m_objectParameter[i].phiRange << std::endl;
         myCout << "    isolationLUT      = "
         << std::hex << m_objectParameter[i].isolationLUT << std::endl;
+        myCout << "    qualityLUT      = "
+        << std::hex << m_objectParameter[i].qualityLUT << std::endl;	
     }
 
     if ( wsc() ) {

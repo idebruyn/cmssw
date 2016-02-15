@@ -27,7 +27,6 @@
 #include "CondFormats/L1TObjects/interface/L1GtFwd.h"
 
 #include "L1Trigger/L1TGlobal/interface/TriggerMenu.h"
-#include "CondFormats/DataRecord/interface/L1TGlobalTriggerMenuRcd.h"
 
 #include "CondFormats/L1TObjects/interface/L1GtCondition.h"
 #include "CondFormats/L1TObjects/interface/L1GtAlgorithm.h"
@@ -35,41 +34,24 @@
 #include "L1Trigger/L1TGlobal/interface/MuonTemplate.h"
 #include "L1Trigger/L1TGlobal/interface/CaloTemplate.h"
 #include "L1Trigger/L1TGlobal/interface/EnergySumTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtJetCountsTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtHfBitCountsTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtHfRingEtSumsTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtCastorTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtBptxTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtExternalTemplate.h"
-#include "CondFormats/L1TObjects/interface/L1GtCorrelationTemplate.h"
+#include "L1Trigger/L1TGlobal/interface/ExternalTemplate.h"
+#include "L1Trigger/L1TGlobal/interface/CorrelationTemplate.h"
+#include "L1Trigger/L1TGlobal/interface/GtCondition.h"
+#include "L1Trigger/L1TGlobal/interface/CorrCondition.h"
 
 #include "CondFormats/L1TObjects/interface/L1MuTriggerScales.h"
 #include "CondFormats/DataRecord/interface/L1MuTriggerScalesRcd.h"
 #include "CondFormats/L1TObjects/interface/L1CaloGeometry.h"
 #include "CondFormats/DataRecord/interface/L1CaloGeometryRecord.h"
 
-#include "L1Trigger/GlobalTrigger/interface/L1GtAlgorithmEvaluation.h"
 #include "L1Trigger/L1TGlobal/interface/ConditionEvaluation.h"
 #include "L1Trigger/L1TGlobal/interface/AlgorithmEvaluation.h"
-
-
-//#include "L1Trigger/GlobalTrigger/interface/L1CaloCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtJetCountsCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtHfBitCountsCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtHfRingEtSumsCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtCastorCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtBptxCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtExternalCondition.h"
-#include "L1Trigger/GlobalTrigger/interface/L1GtCorrelationCondition.h"
-
 
 // Conditions for uGt
 #include "L1Trigger/L1TGlobal/interface/MuCondition.h"
 #include "L1Trigger/L1TGlobal/interface/CaloCondition.h"
 #include "L1Trigger/L1TGlobal/interface/EnergySumCondition.h"
-
-//   *** Comment out what do we do with this.
-#include "L1Trigger/GlobalTrigger/interface/L1GtEtaPhiConversions.h"
+#include "L1Trigger/L1TGlobal/interface/ExternalCondition.h"
 
 
 #include "FWCore/Utilities/interface/Exception.h"
@@ -88,6 +70,9 @@ l1t::GtBoard::GtBoard() :
     m_candL1Tau( new BXVector<const l1t::L1Candidate*>),
     m_candL1Jet( new BXVector<const l1t::L1Candidate*>),
     m_candL1EtSum( new BXVector<const l1t::EtSum*>),
+    m_candL1External( new BXVector<const GlobalExtBlk*>),
+    m_firstEv(true),
+    m_firstEvLumiSegment(true),
     m_isDebugEnabled(edm::isDebugEnabled())
 {
 
@@ -126,6 +111,7 @@ l1t::GtBoard::~GtBoard() {
     delete m_candL1Tau;
     delete m_candL1Jet;
     delete m_candL1EtSum;
+    delete m_candL1External;
 
 //    delete m_gtEtaPhiConversions;
 
@@ -155,6 +141,7 @@ void l1t::GtBoard::init(const int numberPhysTriggers, const int nrL1Mu, const in
   m_candL1Tau->setBXRange( m_bxFirst_, m_bxLast_ );
   m_candL1Jet->setBXRange( m_bxFirst_, m_bxLast_ );
   m_candL1EtSum->setBXRange( m_bxFirst_, m_bxLast_ );
+  m_candL1External->setBXRange( m_bxFirst_, m_bxLast_ );
 
   m_uGtAlgBlk.reset();
   m_uGtExtBlk.reset();
@@ -178,7 +165,10 @@ void l1t::GtBoard::init(const int numberPhysTriggers, const int nrL1Mu, const in
 
 // receive data from Calorimeter
 void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
-        const edm::InputTag& caloInputTag, 
+	const edm::EDGetTokenT<BXVector<l1t::EGamma>>& egInputToken,
+	const edm::EDGetTokenT<BXVector<l1t::Tau>>& tauInputToken,
+	const edm::EDGetTokenT<BXVector<l1t::Jet>>& jetInputToken,
+	const edm::EDGetTokenT<BXVector<l1t::EtSum>>& sumInputToken,
         const bool receiveEG, const int nrL1EG,
 	const bool receiveTau, const int nrL1Tau,	
 	const bool receiveJet, const int nrL1Jet,
@@ -187,7 +177,7 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
     if (m_verbosity) {
         LogDebug("l1t|Global")
                 << "\n**** Board receiving Calo Data "
-                <<  "\n     from input tag " << caloInputTag << "\n"
+	  //<<  "\n     from input tag " << caloInputTag << "\n"
                 << std::endl;
 
     }
@@ -197,13 +187,13 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
     // get data from Calorimeter
     if (receiveEG) {
         edm::Handle<BXVector<l1t::EGamma>> egData;
-        iEvent.getByLabel(caloInputTag, egData);
+        iEvent.getByToken(egInputToken, egData);
 
         if (!egData.isValid()) {
             if (m_verbosity) {
                 edm::LogWarning("l1t|Global")
                         << "\nWarning: BXVector<l1t::EGamma> with input tag "
-                        << caloInputTag
+		  //<< caloInputTag
                         << "\nrequested in configuration, but not found in the event.\n"
                         << std::endl;
             }
@@ -211,6 +201,9 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
            // bx in EG data
            for(int i = egData->getFirstBX(); i <= egData->getLastBX(); ++i) {
   
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
+
               //Loop over EG in this bx
               for(std::vector<l1t::EGamma>::const_iterator eg = egData->begin(i); eg != egData->end(i); ++eg) {
 
@@ -226,20 +219,23 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
 
     if (receiveTau) {
         edm::Handle<BXVector<l1t::Tau>> tauData;
-        iEvent.getByLabel(caloInputTag, tauData);
+        iEvent.getByToken(tauInputToken, tauData);
 
         if (!tauData.isValid()) {
             if (m_verbosity) {
                 edm::LogWarning("l1t|Global")
                         << "\nWarning: BXVector<l1t::Tau> with input tag "
-                        << caloInputTag
+		  //<< caloInputTag
                         << "\nrequested in configuration, but not found in the event.\n"
                         << std::endl;
             }
         } else {
            // bx in tau data
            for(int i = tauData->getFirstBX(); i <= tauData->getLastBX(); ++i) {
-  
+    
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
+
               //Loop over tau in this bx
               for(std::vector<l1t::Tau>::const_iterator tau = tauData->begin(i); tau != tauData->end(i); ++tau) {
 
@@ -255,20 +251,23 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
 
     if (receiveJet) {
         edm::Handle<BXVector<l1t::Jet>> jetData;
-        iEvent.getByLabel(caloInputTag, jetData);
+        iEvent.getByToken(jetInputToken, jetData);
 
         if (!jetData.isValid()) {
             if (m_verbosity) {
                 edm::LogWarning("l1t|Global")
                         << "\nWarning: BXVector<l1t::Jet> with input tag "
-                        << caloInputTag
+		  //<< caloInputTag
                         << "\nrequested in configuration, but not found in the event.\n"
                         << std::endl;
             }
         } else {
            // bx in jet data
            for(int i = jetData->getFirstBX(); i <= jetData->getLastBX(); ++i) {
-  
+    
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
+
               //Loop over jet in this bx
               for(std::vector<l1t::Jet>::const_iterator jet = jetData->begin(i); jet != jetData->end(i); ++jet) {
 
@@ -284,19 +283,22 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
 
     if(receiveEtSums) {
         edm::Handle<BXVector<l1t::EtSum>> etSumData;
-        iEvent.getByLabel(caloInputTag, etSumData);
+        iEvent.getByToken(sumInputToken, etSumData);
 
         if(!etSumData.isValid()) {
             if (m_verbosity) {
                 edm::LogWarning("l1t|Global")
                         << "\nWarning: BXVector<l1t::EtSum> with input tag "
-                        << caloInputTag
+		  //<< caloInputTag
                         << "\nrequested in configuration, but not found in the event.\n"
                         << std::endl;
             }
 	} else {
 
            for(int i = etSumData->getFirstBX(); i <= etSumData->getLastBX(); ++i) {
+  
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
 
               //Loop over jet in this bx
               for(std::vector<l1t::EtSum>::const_iterator etsum = etSumData->begin(i); etsum != etSumData->end(i); ++etsum) {
@@ -337,13 +339,13 @@ void l1t::GtBoard::receiveCaloObjectData(edm::Event& iEvent,
 
 // receive data from Global Muon Trigger
 void l1t::GtBoard::receiveMuonObjectData(edm::Event& iEvent,
-    const edm::InputTag& muInputTag, const bool receiveMu,
+    const edm::EDGetTokenT<BXVector<l1t::Muon> >& muInputToken, const bool receiveMu,
     const int nrL1Mu) {
 
     if (m_verbosity) {
         LogDebug("l1t|Global")
                 << "\n**** GtBoard receiving muon data = "
-                << "\n     from input tag " << muInputTag << "\n"
+	  //<< "\n     from input tag " << muInputTag << "\n"
                 << std::endl;
     }
 
@@ -352,20 +354,23 @@ void l1t::GtBoard::receiveMuonObjectData(edm::Event& iEvent,
     // get data from Global Muon Trigger
     if (receiveMu) {
         edm::Handle<BXVector<l1t::Muon>> muonData;
-        iEvent.getByLabel(muInputTag, muonData);
+        iEvent.getByToken(muInputToken, muonData);
 
         if (!muonData.isValid()) {
             if (m_verbosity) {
                 edm::LogWarning("l1t|Global")
                         << "\nWarning: BXVector<l1t::Muon> with input tag "
-                        << muInputTag
+		  //<< muInputTag
                         << "\nrequested in configuration, but not found in the event.\n"
                         << std::endl;
             }
         } else {
            // bx in muon data
            for(int i = muonData->getFirstBX(); i <= muonData->getLastBX(); ++i) {
-  
+    
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
+
               //Loop over Muons in this bx
               for(std::vector<l1t::Muon>::const_iterator mu = muonData->begin(i); mu != muonData->end(i); ++mu) {
 
@@ -385,9 +390,57 @@ void l1t::GtBoard::receiveMuonObjectData(edm::Event& iEvent,
 
 }
 
+// receive data from Global External Conditions
+void l1t::GtBoard::receiveExternalData(edm::Event& iEvent,
+    const edm::EDGetTokenT<BXVector<GlobalExtBlk> >& extInputToken, const bool receiveExt
+    ) {
+
+    if (m_verbosity) {
+        LogDebug("L1TGlobal")
+                << "\n**** GtBoard receiving external data = "
+	  //<< "\n     from input tag " << muInputTag << "\n"
+                << std::endl;
+    }
+
+    resetExternal();
+
+    // get data from Global Muon Trigger
+    if (receiveExt) {
+        edm::Handle<BXVector<GlobalExtBlk>> extData;
+        iEvent.getByToken(extInputToken, extData);
+
+        if (!extData.isValid()) {
+            if (m_verbosity) {
+                edm::LogWarning("L1TGlobal")
+                        << "\nWarning: BXVector<GlobalExtBlk> with input tag "
+		  //<< muInputTag
+                        << "\nrequested in configuration, but not found in the event.\n"
+                        << std::endl;
+            }
+        } else {
+           // bx in muon data
+           for(int i = extData->getFirstBX(); i <= extData->getLastBX(); ++i) {
+    
+	     // Prevent from pushing back bx that is outside of allowed range
+	     if( i < m_bxFirst_ || i > m_bxLast_ ) continue;
+
+              //Loop over ext in this bx
+              for(std::vector<GlobalExtBlk>::const_iterator ext = extData->begin(i); ext != extData->end(i); ++ext) {
+
+	        (*m_candL1External).push_back(i,&(*ext));
+              } //end loop over ext in bx
+	   } //end loop over bx   
+
+        } //end if over valid ext data
+
+    } //end if ReveiveExt data
+
+}
+
+
 // run GTL
 void l1t::GtBoard::runGTL(
-        edm::Event& iEvent, const edm::EventSetup& evSetup,
+        edm::Event& iEvent, const edm::EventSetup& evSetup, const TriggerMenu* m_l1GtMenu,
         const bool produceL1GtObjectMapRecord,
         const int iBxInEvent,
         std::auto_ptr<L1GlobalTriggerObjectMapRecord>& gtObjectMapRecord,
@@ -398,33 +451,22 @@ void l1t::GtBoard::runGTL(
 	const int nrL1Jet,
         const int nrL1JetCounts) {
 
-
-	// get / update the trigger menu from the EventSetup
-    // local cache & check on cacheIdentifier
-    unsigned long long l1GtMenuCacheID = evSetup.get<L1TGlobalTriggerMenuRcd>().cacheIdentifier();
-
-    if (m_l1GtMenuCacheID != l1GtMenuCacheID) {
-
-        edm::ESHandle< TriggerMenu> l1GtMenu;
-        evSetup.get< L1TGlobalTriggerMenuRcd>().get(l1GtMenu) ;
-        m_l1GtMenu =  l1GtMenu.product();
-       (const_cast<TriggerMenu*>(m_l1GtMenu))->buildGtConditionMap();
-
-        m_l1GtMenuCacheID = l1GtMenuCacheID;
-    }
-
     const std::vector<ConditionMap>& conditionMap = m_l1GtMenu->gtConditionMap();
     const AlgorithmMap& algorithmMap = m_l1GtMenu->gtAlgorithmMap();
+    const L1TGlobalScales& gtScales = m_l1GtMenu->gtScales();
+    const std::string scaleSetName = gtScales.getScalesName();
+    LogDebug("L1TGlobal") << " L1 Menu Scales -- Set Name: " << scaleSetName << std::endl;
 
     // Reset AlgBlk for this bx
      m_uGtAlgBlk.reset();
      m_uGtExtBlk.reset();
      m_algInitialOr=false;
      m_algPrescaledOr=false;
+     m_algFinalOrPreVeto=false;
      m_algFinalOr=false;
+     m_algFinalOrVeto=false;
      
-     
-    /*
+    
     const std::vector<std::vector<MuonTemplate> >& corrMuon =
             m_l1GtMenu->corMuonTemplate();
 
@@ -435,15 +477,16 @@ void l1t::GtBoard::runGTL(
     const std::vector<std::vector<EnergySumTemplate> >& corrEnergySum =
             m_l1GtMenu->corEnergySumTemplate();
 
-    LogDebug("l1t|Global") << "Size corrMuon " << corrMuon.size() 
+    LogDebug("L1TGlobal") << "Size corrMuon " << corrMuon.size() 
                            << "\nSize corrCalo " << corrCalo.size() 
 			   << "\nSize corrSums " << corrEnergySum.size() << std::endl;
-    */
+    
 
     // conversion needed for correlation conditions
     // done in the condition loop when the first correlation template is in the menu
     bool convertScale = false;
 
+/* BLW Comment out 
     // get / update the calorimeter geometry from the EventSetup
     // local cache & check on cacheIdentifier
     unsigned long long l1CaloGeometryCacheID =
@@ -475,7 +518,7 @@ void l1t::GtBoard::runGTL(
         m_l1MuTriggerScalesCacheID = l1MuTriggerScalesCacheID;
         convertScale = true;
     }
-
+*/
     if (convertScale) {
 
 /*  Comment out for now
@@ -613,186 +656,115 @@ void l1t::GtBoard::runGTL(
 
                 }
                     break;
-/*  Don't access conditions for now		
-                case CondJetCounts: {
-                    L1GtJetCountsCondition* jcCondition = new L1GtJetCountsCondition(
-                            itCond->second, this, nrL1JetCounts);
 
-                    jcCondition->setVerbosity(m_verbosity);
-                    jcCondition->evaluateConditionStoreResult();
-
-                    cMapResults[itCond->first] = jcCondition;
-
-                    if (m_verbosity && m_isDebugEnabled) {
-                        std::ostringstream myCout;
-                        jcCondition->print(myCout);
-
-                        LogTrace("l1t|Global") << myCout.str() << std::endl;
-                    }
-
-                    //                  delete jcCondition;
-                }
-                    break;
-*/
                 case CondExternal: {
-  
- /*  Don't access conditions for now 
-                    bool externalCondResult = true;
 
-                    // FIXME need a solution to read External with real value
+                    ExternalCondition* extCondition = new ExternalCondition(
+                            itCond->second, this);
 
-                    L1GtExternalCondition* externalCondition = new L1GtExternalCondition(
-                            itCond->second, externalCondResult);
+                    extCondition->setVerbosity(m_verbosity);
+                    extCondition->evaluateConditionStoreResult(iBxInEvent);
 
-                    externalCondition->setVerbosity(m_verbosity);
-                    externalCondition->evaluateConditionStoreResult();
-
-                    cMapResults[itCond->first] = externalCondition;
+                    cMapResults[itCond->first] = extCondition;
 
                     if (m_verbosity && m_isDebugEnabled) {
                         std::ostringstream myCout;
-                        externalCondition->print(myCout);
+                        extCondition->print(myCout);
 
                         LogTrace("l1t|Global") << myCout.str() << std::endl;
                     }
+                    //                    delete extCondition;
 
-                    //                  delete externalCondition;
-*/
+
                 }
                     break;
                 case CondCorrelation: {
 
 
-/*  Don't access conditions for now
+
+
                     // get first the sub-conditions
-                    const L1GtCorrelationTemplate* corrTemplate =
-                        static_cast<const L1GtCorrelationTemplate*>(itCond->second);
-                    const L1GtConditionCategory cond0Categ = corrTemplate->cond0Category();
-                    const L1GtConditionCategory cond1Categ = corrTemplate->cond1Category();
-                    const int cond0Ind = corrTemplate->cond0Index();
-                    const int cond1Ind = corrTemplate->cond1Index();
+                    const CorrelationTemplate* corrTemplate =
+	            static_cast<const CorrelationTemplate*>(itCond->second);
+		    const GtConditionCategory cond0Categ = corrTemplate->cond0Category();
+		    const GtConditionCategory cond1Categ = corrTemplate->cond1Category();
+		    const int cond0Ind = corrTemplate->cond0Index();
+		    const int cond1Ind = corrTemplate->cond1Index();
 
-                    const L1GtCondition* cond0Condition = 0;
-                    const L1GtCondition* cond1Condition = 0;
+		    const GtCondition* cond0Condition = 0;
+		    const GtCondition* cond1Condition = 0;
 
-                    // maximum number of objects received for evaluation of l1t::Type1s condition
-                    int cond0NrL1Objects = 0;
-                    int cond1NrL1Objects = 0;
+		    // maximum number of objects received for evaluation of l1t::Type1s condition
+		    int cond0NrL1Objects = 0;
+		    int cond1NrL1Objects = 0;
+		     LogDebug("l1t|Global") << " cond0NrL1Objects" << cond0NrL1Objects << "  cond1NrL1Objects  " << cond1NrL1Objects << std::endl;
 
-                    int cond0EtaBits = 0;
-                    int cond1EtaBits = 0;
 
-                    switch (cond0Categ) {
-                        case CondMuon: {
-                            cond0Condition = &((corrMuon[iChip])[cond0Ind]);
-                            cond0NrL1Objects = nrL1Mu;
-                            cond0EtaBits = ifMuEtaNumberBits;
-                        }
-                            break;
-                        case CondCalo: {
+//BLW		    int cond0EtaBits = 0;
+//		    int cond1EtaBits = 0;
+
+		    switch (cond0Categ) {
+			case CondMuon: {
+			    cond0Condition = &((corrMuon[iChip])[cond0Ind]);
+//			    cond0NrL1Objects = nrL1Mu;
+//BLW			    cond0EtaBits = ifMuEtaNumberBits;
+			}
+			    break;
+			case CondCalo: {
                             cond0Condition = &((corrCalo[iChip])[cond0Ind]);
+			}
+			    break;
+			case CondEnergySum: {
+			    cond0Condition = &((corrEnergySum[iChip])[cond0Ind]);
+//			    cond0NrL1Objects = 1;
+			}
+			    break;
+			default: {
+			    // do nothing, should not arrive here
+			}
+			    break;
+		    }
 
-                            switch ((cond0Condition->objectType())[0]) {
-                                case NoIsoEG:
-                                    cond0NrL1Objects= nrL1NoIsoEG;
-                                    break;
-                                case IsoEG:
-                                    cond0NrL1Objects = nrL1IsoEG;
-                                    break;
-                                case CenJet:
-                                    cond0NrL1Objects = nrL1CenJet;
-                                    break;
-                                case ForJet:
-                                    cond0NrL1Objects = nrL1ForJet;
-                                    break;
-                                case TauJet:
-                                    cond0NrL1Objects = nrL1TauJet;
-                                    break;
-                                default:
-                                    cond0NrL1Objects = 0;
-                                    break;
-                            }
-
-                            cond0EtaBits = ifCaloEtaNumberBits;
-                        }
-                            break;
-                        case CondEnergySum: {
-                            cond0Condition = &((corrEnergySum[iChip])[cond0Ind]);
-                            cond0NrL1Objects = 1;
-                        }
-                            break;
-                        default: {
-                            // do nothing, should not arrive here
-                        }
-                            break;
-                    }
-
-                    switch (cond1Categ) {
-                        case CondMuon: {
-                            cond1Condition = &((corrMuon[iChip])[cond1Ind]);
-                            cond1NrL1Objects = nrL1Mu;
-                            cond1EtaBits = ifMuEtaNumberBits;
-                        }
-                            break;
-                        case CondCalo: {
+		    switch (cond1Categ) {
+			case CondMuon: {
+			    cond1Condition = &((corrMuon[iChip])[cond1Ind]);
+//			    cond1NrL1Objects = nrL1Mu;
+//BLW			    cond1EtaBits = ifMuEtaNumberBits;
+			}
+			    break;
+			case CondCalo: {
                             cond1Condition = &((corrCalo[iChip])[cond1Ind]);
+			}
+			    break;
+			case CondEnergySum: {
+			    cond1Condition = &((corrEnergySum[iChip])[cond1Ind]);
+//			    cond1NrL1Objects = 1;
+			}
+			    break;
+			default: {
+			    // do nothing, should not arrive here
+			}
+			    break;
+		    }
 
-                            switch ((cond1Condition->objectType())[0]) {
-                                case NoIsoEG:
-                                    cond1NrL1Objects= nrL1NoIsoEG;
-                                    break;
-                                case IsoEG:
-                                    cond1NrL1Objects = nrL1IsoEG;
-                                    break;
-                                case CenJet:
-                                    cond1NrL1Objects = nrL1CenJet;
-                                    break;
-                                case ForJet:
-                                    cond1NrL1Objects = nrL1ForJet;
-                                    break;
-                                case TauJet:
-                                    cond1NrL1Objects = nrL1TauJet;
-                                    break;
-                                default:
-                                    cond1NrL1Objects = 0;
-                                    break;
-                            }
+		    CorrCondition* correlationCond =
+			new CorrCondition(itCond->second, cond0Condition, cond1Condition, this);
 
-                             cond1EtaBits = ifCaloEtaNumberBits;
-                        }
-                            break;
-                        case CondEnergySum: {
-                            cond1Condition = &((corrEnergySum[iChip])[cond1Ind]);
-                            cond1NrL1Objects = 1;
-                        }
-                            break;
-                        default: {
-                            // do nothing, should not arrive here
-                        }
-                            break;
-                    }
+		    correlationCond->setVerbosity(m_verbosity);
+		    correlationCond->evaluateConditionStoreResult(iBxInEvent);
 
-                    L1GtCorrelationCondition* correlationCond =
-                        new L1GtCorrelationCondition(itCond->second,
-                            cond0Condition, cond1Condition,
-                            cond0NrL1Objects, cond1NrL1Objects,
-                            cond0EtaBits, cond1EtaBits,
-                            this, this, m_gtEtaPhiConversions);
+		    cMapResults[itCond->first] = correlationCond;
 
-                    correlationCond->setVerbosity(m_verbosity);
-                    correlationCond->evaluateConditionStoreResult();
+		    if (m_verbosity && m_isDebugEnabled) {
+			std::ostringstream myCout;
+			correlationCond->print(myCout);
 
-                    cMapResults[itCond->first] = correlationCond;
+			LogTrace("l1t|Global") << myCout.str() << std::endl;
+		    }
 
-                    if (m_verbosity && m_isDebugEnabled) {
-                        std::ostringstream myCout;
-                        correlationCond->print(myCout);
+		    //  		delete correlationCond;
 
-                        LogTrace("l1t|Global") << myCout.str() << std::endl;
-                    }
-
-                    //                  delete correlationCond;
-*/
+                
                 }
                     break;
                 case CondNull: {
@@ -896,6 +868,11 @@ void l1t::GtBoard::runGTL(
 // run GTL
 void l1t::GtBoard::runFDL(edm::Event& iEvent, 
         const int iBxInEvent,
+        const int totalBxInEvent,
+        const unsigned int numberPhysTriggers,
+	const std::vector<int>& prescaleFactorsAlgoTrig,
+	const std::vector<unsigned int>& triggerMaskAlgoTrig,
+	const std::vector<unsigned int>& triggerMaskVetoAlgoTrig,
         const bool algorithmTriggersUnprescaled,
         const bool algorithmTriggersUnmasked ){
 
@@ -907,20 +884,28 @@ void l1t::GtBoard::runFDL(edm::Event& iEvent,
 
     }
 
-/* Nothing with prescales right now.
-    // prescale counters are reset at the beginning of the luminosity segment
-    if (m_firstEv) {
 
-        m_firstEv = false;
+    // prescale counters are reset at the beginning of the luminosity segment
+    if( m_firstEv ){
+      // prescale counters: numberPhysTriggers counters per bunch cross
+      m_prescaleCounterAlgoTrig.reserve(numberPhysTriggers*totalBxInEvent);
+
+      for( int iBxInEvent = 0; iBxInEvent <= totalBxInEvent; ++iBxInEvent ){
+	m_prescaleCounterAlgoTrig.push_back(prescaleFactorsAlgoTrig);
+      }
+      m_firstEv = false;
     }
 
     // TODO FIXME find the beginning of the luminosity segment
-    if (m_firstEvLumiSegment) {
+    if( m_firstEvLumiSegment ){
 
-        m_firstEvLumiSegment = false;
+      m_prescaleCounterAlgoTrig.clear();
+      for( int iBxInEvent = 0; iBxInEvent <= totalBxInEvent; ++iBxInEvent ){
+	m_prescaleCounterAlgoTrig.push_back(prescaleFactorsAlgoTrig);
+      }
 
+      m_firstEvLumiSegment = false;
     }
-*/
 
     // Copy Algorithm bits to Prescaled word 
     // Prescaling and Masking done below if requested.
@@ -930,59 +915,85 @@ void l1t::GtBoard::runFDL(edm::Event& iEvent,
     // -------------------------------------------
     //      Apply Prescales or skip if turned off
     // -------------------------------------------
-    if (!algorithmTriggersUnprescaled){
-/*
-	for (unsigned int iBit = 0; iBit < numberPhysTriggers; ++iBit) {
+    if( !algorithmTriggersUnprescaled ){
 
-            if (prescaleFactorsAlgoTrig.at(iBit) != 1) {
+      // iBxInEvent is ... -2 -1 0 1 2 ... while counters are 0 1 2 3 4 ...
+      int inBxInEvent =  totalBxInEvent/2 + iBxInEvent;
 
-        	bool bitValue = algoDecisionWord.at( iBit );
-        	if (bitValue) {
+      bool temp_algPrescaledOr = false;
+      for( unsigned int iBit = 0; iBit < numberPhysTriggers; ++iBit ){
 
-                    (m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit))--;
-                    if (m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit) == 0) {
+	bool bitValue = m_uGtAlgBlk.getAlgoDecisionInitial( iBit );
+	if( bitValue ){
+	  if( prescaleFactorsAlgoTrig.at(iBit) != 1 ){
 
-                	// bit already true in algoDecisionWord, just reset counter
-                	m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit) =
-                            prescaleFactorsAlgoTrig.at(iBit);
-                    } else {
+	    (m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit))--;
+	    if( m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit) == 0 ){
 
-                	// change bit to false in prescaled word and final decision word
-                	algoDecisionWord[iBit] = false;
+	      // bit already true in algoDecisionWord, just reset counter
+	      m_prescaleCounterAlgoTrig.at(inBxInEvent).at(iBit) = prescaleFactorsAlgoTrig.at(iBit);
+	      temp_algPrescaledOr = true;
+	    } 
+	    else {
 
-                    } //if Prescale counter reached zero
-        	} //if algo bit is set true
-            } //if prescale factor is not 1 (ie. no prescale)
-	} //loop over alg bits
-*/
-	m_algPrescaledOr = m_algInitialOr; //temp
-	 
-    } else {
-        
-	// Since not Prescaling just take OR of Initial Work
-	m_algPrescaledOr = m_algInitialOr;
+	      // change bit to false in prescaled word and final decision word
+	      m_uGtAlgBlk.setAlgoDecisionPreScaled(iBit,false);
+
+	    } //if Prescale counter reached zero
+	  } //if prescale factor is not 1 (ie. no prescale)
+	  else {
+	    
+	    temp_algPrescaledOr = true;
+	  }
+	} //if algo bit is set true
+      } //loop over alg bits
+
+      m_algPrescaledOr = temp_algPrescaledOr; //temp
+     
+    } 
+    else {
+      // Since not Prescaling just take OR of Initial Work
+      m_algPrescaledOr = m_algInitialOr;
 	
     }//if we are going to apply prescales.
-      
-      
+
       
     // Copy Algorithm bits fron Prescaled word to Final Word 
     // Masking done below if requested.
     m_uGtAlgBlk.copyPrescaledToFinal();
     
-    if(!algorithmTriggersUnmasked) {
-    
- 
-/*
-       masking the bits goes here.
-*/       
-        m_algFinalOr = m_algPrescaledOr;
+    if( !algorithmTriggersUnmasked ){
+
+      bool temp_algFinalOr = false;
+      for( unsigned int iBit = 0; iBit < numberPhysTriggers; ++iBit ){
+
+	bool bitValue = m_uGtAlgBlk.getAlgoDecisionPreScaled( iBit );
+
+	if( bitValue ){
+	  bool isMasked = ( triggerMaskAlgoTrig.at(iBit) == 0 );
+
+	  bool passMask = ( bitValue && !isMasked );
+
+	  if( passMask ) temp_algFinalOr = true;
+	  else           m_uGtAlgBlk.setAlgoDecisionFinal(iBit,false);
+
+	  // Check if veto mask is true, if it is, set the event veto flag.
+	  if ( triggerMaskVetoAlgoTrig.at(iBit) == 1 ) m_algFinalOrVeto = true;
+
+	}
+      }
+
+      m_algFinalOrPreVeto = temp_algFinalOr;
 	
-    } else {
-      
-         m_algFinalOr = m_algPrescaledOr;
+    } 
+    else {
+
+      m_algFinalOrPreVeto = m_algPrescaledOr;
      
-    } ///if we are masking.	
+    } ///if we are masking.
+
+// Set FinalOR for this board
+   m_algFinalOr = (m_algFinalOrPreVeto & !m_algFinalOrVeto);
 
 
 
@@ -1007,15 +1018,11 @@ void l1t::GtBoard::fillAlgRecord(int iBxInEvent,
     m_uGtAlgBlk.setOrbitNr((unsigned int)(orbNr & 0xFFFFFFFF));
     m_uGtAlgBlk.setbxNr((bxNr & 0xFFFF));
     m_uGtAlgBlk.setbxInEventNr((iBxInEvent & 0xF));
-
-// Set the header information and Final OR
-    int finalOR = 0x0;     
-    if(m_algFinalOr) finalOR  = (finalOR | 0x2);  
-    if(m_uGtFinalBoard) {
-       finalOR = (finalOR | 0x8);
-       if( (finalOR >>1) & 0x1 ) finalOR = (finalOR | 0x1);
-    }
-    m_uGtAlgBlk.setFinalOR(finalOR);
+    m_uGtAlgBlk.setPreScColumn(0); //TO DO: get this and fill it in.
+        
+    m_uGtAlgBlk.setFinalORVeto(m_algFinalOrVeto);
+    m_uGtAlgBlk.setFinalORPreVeto(m_algFinalOrPreVeto); 
+    m_uGtAlgBlk.setFinalOR(m_algFinalOr);
     
 
     uGtAlgRecord->push_back(iBxInEvent, m_uGtAlgBlk);
@@ -1037,9 +1044,7 @@ void l1t::GtBoard::fillExtRecord(int iBxInEvent,
 
     }
 // Set header information
-    m_uGtExtBlk.setOrbitNr((unsigned int)(orbNr & 0xFFFFFFFF));
-    m_uGtExtBlk.setbxNr((bxNr & 0xFFFF));
-    m_uGtExtBlk.setbxInEventNr((iBxInEvent & 0xF));
+
 
     uGtExtRecord->push_back(iBxInEvent, m_uGtExtBlk);
 
@@ -1051,6 +1056,7 @@ void l1t::GtBoard::reset() {
 
   resetMu();
   resetCalo();
+  resetExternal();
 
   m_uGtAlgBlk.reset();
   m_uGtExtBlk.reset();
@@ -1084,6 +1090,14 @@ void l1t::GtBoard::resetCalo() {
   m_candL1EtSum->setBXRange( m_bxFirst_, m_bxLast_ );
 
 }
+
+void l1t::GtBoard::resetExternal() {
+
+  m_candL1External->clear();
+  m_candL1External->setBXRange( m_bxFirst_, m_bxLast_ );
+
+}
+
 
 // print Global Muon Trigger data received by GTL
 void l1t::GtBoard::printGmtData(const int iBxInEvent) const {

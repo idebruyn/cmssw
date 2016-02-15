@@ -51,7 +51,8 @@ MultiTrackValidator::MultiTrackValidator(const edm::ParameterSet& pset):
   doSimTrackPlots_(pset.getUntrackedParameter<bool>("doSimTrackPlots")),
   doRecoTrackPlots_(pset.getUntrackedParameter<bool>("doRecoTrackPlots")),
   dodEdxPlots_(pset.getUntrackedParameter<bool>("dodEdxPlots")),
-  doPVAssociationPlots_(pset.getUntrackedParameter<bool>("doPVAssociationPlots"))
+  doPVAssociationPlots_(pset.getUntrackedParameter<bool>("doPVAssociationPlots")),
+  doSeedPlots_(pset.getUntrackedParameter<bool>("doSeedPlots"))
 {
   ParameterSet psetForHistoProducerAlgo = pset.getParameter<ParameterSet>("histoProducerAlgoBlock");
   histoProducerAlgo_ = std::make_unique<MTVHistoProducerAlgoForTracker>(psetForHistoProducerAlgo, consumesCollector());
@@ -92,30 +93,30 @@ MultiTrackValidator::MultiTrackValidator(const edm::ParameterSet& pset):
 						    pset.getParameter<std::vector<int> >("pdgIdTP"));
 
 
-  ParameterSet psetVsEta = psetForHistoProducerAlgo.getParameter<ParameterSet>("TpSelectorForEfficiencyVsEta");
-  dRtpSelector = TrackingParticleSelector(psetVsEta.getParameter<double>("ptMin"),
-					  psetVsEta.getParameter<double>("minRapidity"),
-					  psetVsEta.getParameter<double>("maxRapidity"),
-					  psetVsEta.getParameter<double>("tip"),
-					  psetVsEta.getParameter<double>("lip"),
-					  psetVsEta.getParameter<int>("minHit"),
-					  psetVsEta.getParameter<bool>("signalOnly"),
-					  psetVsEta.getParameter<bool>("intimeOnly"),
-					  psetVsEta.getParameter<bool>("chargedOnly"),
-					  psetVsEta.getParameter<bool>("stableOnly"),
-					  psetVsEta.getParameter<std::vector<int> >("pdgId"));
+  ParameterSet psetVsPhi = psetForHistoProducerAlgo.getParameter<ParameterSet>("TpSelectorForEfficiencyVsPhi");
+  dRtpSelector = TrackingParticleSelector(psetVsPhi.getParameter<double>("ptMin"),
+					  psetVsPhi.getParameter<double>("minRapidity"),
+					  psetVsPhi.getParameter<double>("maxRapidity"),
+					  psetVsPhi.getParameter<double>("tip"),
+					  psetVsPhi.getParameter<double>("lip"),
+					  psetVsPhi.getParameter<int>("minHit"),
+					  psetVsPhi.getParameter<bool>("signalOnly"),
+					  psetVsPhi.getParameter<bool>("intimeOnly"),
+					  psetVsPhi.getParameter<bool>("chargedOnly"),
+					  psetVsPhi.getParameter<bool>("stableOnly"),
+					  psetVsPhi.getParameter<std::vector<int> >("pdgId"));
 
   dRtpSelectorNoPtCut = TrackingParticleSelector(0.0,
-                                                 psetVsEta.getParameter<double>("minRapidity"),
-                                                 psetVsEta.getParameter<double>("maxRapidity"),
-                                                 psetVsEta.getParameter<double>("tip"),
-                                                 psetVsEta.getParameter<double>("lip"),
-                                                 psetVsEta.getParameter<int>("minHit"),
-                                                 psetVsEta.getParameter<bool>("signalOnly"),
-                                                 psetVsEta.getParameter<bool>("intimeOnly"),
-                                                 psetVsEta.getParameter<bool>("chargedOnly"),
-                                                 psetVsEta.getParameter<bool>("stableOnly"),
-                                                 psetVsEta.getParameter<std::vector<int> >("pdgId"));
+                                                 psetVsPhi.getParameter<double>("minRapidity"),
+                                                 psetVsPhi.getParameter<double>("maxRapidity"),
+                                                 psetVsPhi.getParameter<double>("tip"),
+                                                 psetVsPhi.getParameter<double>("lip"),
+                                                 psetVsPhi.getParameter<int>("minHit"),
+                                                 psetVsPhi.getParameter<bool>("signalOnly"),
+                                                 psetVsPhi.getParameter<bool>("intimeOnly"),
+                                                 psetVsPhi.getParameter<bool>("chargedOnly"),
+                                                 psetVsPhi.getParameter<bool>("stableOnly"),
+                                                 psetVsPhi.getParameter<std::vector<int> >("pdgId"));
 
   useGsf = pset.getParameter<bool>("useGsf");
 
@@ -133,6 +134,12 @@ MultiTrackValidator::MultiTrackValidator(const edm::ParameterSet& pset):
     for (auto const& src: associators) {
       associatormapStRs.push_back(consumes<reco::SimToRecoCollection>(src));
       associatormapRtSs.push_back(consumes<reco::RecoToSimCollection>(src));
+    }
+  }
+
+  if(doSeedPlots_) {
+    for(const auto& tag: pset.getParameter< std::vector<edm::InputTag> >("label")) {
+      seedToTrackTokens_.push_back(consumes<std::vector<int>>(tag));
     }
   }
 }
@@ -220,6 +227,10 @@ void MultiTrackValidator::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
         histoProducerAlgo_->bookRecoHistos(ibook);
         if (dodEdxPlots_) histoProducerAlgo_->bookRecodEdxHistos(ibook);
         if (doPVAssociationPlots_) histoProducerAlgo_->bookRecoPVAssociationHistos(ibook);
+      }
+
+      if(doSeedPlots_) {
+        histoProducerAlgo_->bookSeedHistos(ibook);
       }
     }//end loop www
   }// end loop ww
@@ -513,6 +524,14 @@ void MultiTrackValidator::analyze(const edm::Event& event, const edm::EventSetup
       reco::SimToRecoCollection const & simRecColl = *simRecCollP;
  
 
+      // Fill seed-specific histograms
+      if(doSeedPlots_) {
+        edm::Handle<std::vector<int>> hseedToTrack;
+        event.getByToken(seedToTrackTokens_[www], hseedToTrack);
+        const int failed = std::count(hseedToTrack->begin(), hseedToTrack->end(), -1);
+        histoProducerAlgo_->fill_seed_histos(www, failed, hseedToTrack->size());
+      }
+
 
       // ########################################################
       // fill simulation histograms (LOOP OVER TRACKINGPARTICLES)
@@ -731,7 +750,7 @@ void MultiTrackValidator::analyze(const edm::Event& event, const edm::EventSetup
             if(numAssocRecoTracks>1) {
               h_looper_coll[ww]->Fill(www);
             }
-            else if(!isSigSimMatched) {
+            if(!isSigSimMatched) {
               h_pileup_coll[ww]->Fill(www);
             }
           }

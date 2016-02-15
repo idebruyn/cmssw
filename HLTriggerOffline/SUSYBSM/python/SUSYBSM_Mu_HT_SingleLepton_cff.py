@@ -43,7 +43,7 @@ SUSY_HLT_Mu_HT_SingleLepton = cms.EDAnalyzer('SUSY_HLT_SingleLepton',
                                              )
 
 SUSY_HLT_Mu_HT_SingleLepton_POSTPROCESSING = cms.EDAnalyzer('DQMGenericClient',
-                                                            subDirs = cms.untracked.vstring('HLT/SUSYBSM/HLT_Mu15_IsoVVVL_PFHT600'),
+                                                            subDirs = cms.untracked.vstring('HLT/SUSYBSM/HLT_Mu15_IsoVVVL_PFHT600_v'),
                                                             efficiency = cms.vstring(
         "leptonTurnOn_eff ';Offline Muon p_{T} [GeV];#epsilon' leptonTurnOn_num leptonTurnOn_den",
         "pfHTTurnOn_eff ';Offline PF H_{T} [GeV];#epsilon' pfHTTurnOn_num pfHTTurnOn_den"
@@ -51,6 +51,3 @@ SUSY_HLT_Mu_HT_SingleLepton_POSTPROCESSING = cms.EDAnalyzer('DQMGenericClient',
                                                             resolution = cms.vstring('')
                                                             )
 
-SUSY_HLT_Mu_HT_SingleLepton_FASTSIM = deepcopy(SUSY_HLT_Mu_HT_SingleLepton)
-
-SUSY_HLT_Mu_HT_SingleLepton_FASTSIM_POSTPROCESSING = deepcopy(SUSY_HLT_Mu_HT_SingleLepton_POSTPROCESSING)

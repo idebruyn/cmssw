@@ -169,6 +169,7 @@ SiStripMonitorCluster::SiStripMonitorCluster(const edm::ParameterSet& iConfig)
   module_clusterWidth_vs_amplitude_on = ParametersClusWidthVsAmpTH2.getParameter<bool>("moduleswitchon");
 
   clustertkhistomapon = conf_.getParameter<bool>("TkHistoMap_On");
+  clusterchtkhistomapon = conf_.getParameter<bool>("ClusterChTkHistoMap_On");
   createTrendMEs = conf_.getParameter<bool>("CreateTrendMEs");
   trendVsLs_ = conf_.getParameter<bool>("TrendVsLS");
   Mod_On_ = conf_.getParameter<bool>("Mod_On");
@@ -257,6 +258,11 @@ void SiStripMonitorCluster::createMEs(const edm::EventSetup& es , DQMStore::IBoo
       if ( (topFolderName_ == "SiStrip") or (std::string::npos != topFolderName_.find("HLT")) )
 	tkmapcluster = new TkHistoMap(ibooker , topFolderName_,"TkHMap_NumberOfCluster",pu,es,0.,true);
       else tkmapcluster = new TkHistoMap(ibooker , topFolderName_+"/TkHistoMap","TkHMap_NumberOfCluster",pu,es,0.,false);
+    }
+    if (clusterchtkhistomapon) {
+     if ( (topFolderName_ == "SiStrip") or (std::string::npos != topFolderName_.find("HLT")) )
+       tkmapclusterch = new TkHistoMap(ibooker , topFolderName_,"TkHMap_ClusterCharge",0.,true);
+     else tkmapclusterch = new TkHistoMap(ibooker , topFolderName_+"/TkHistoMap","TkHMap_ClusterCharge",0.,false);
     }
 
     // loop over detectors and book MEs
@@ -606,6 +612,8 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 	}
 	if(clustertkhistomapon) tkmapcluster->fill(detid,0.);
 	if(clustertkhistomapon) tkmapcluster->fillPoly(detid,0.,pu);
+	if(clusterchtkhistomapon) tkmapclusterch->fill(detid,0.);
+
 	if (found_layer_me && layerswitchnumclusterprofon) layer_single.LayerNumberOfClusterProfile->Fill(iDet, 0.0);
 	continue; // no clusters for this detid => jump to next step of loop
       }
@@ -645,6 +653,8 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 	short cluster_width    = ampls.size();
 	// add nr of strips of this cluster to total nr. of clusterized strips
 	total_clusterized_strips = total_clusterized_strips + cluster_width;
+
+	if(clusterchtkhistomapon) tkmapclusterch->fill(detid,static_cast<float>(clusterIter->charge()));
 
 	// cluster signal and noise from the amplitudes
 	float cluster_signal = 0.0;

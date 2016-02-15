@@ -45,7 +45,7 @@ int mask_[9][9] = {
 
 std::vector<l1t::Jet>::iterator start_, end_;
 
-l1t::Stage2Layer2JetAlgorithmFirmwareImp1::Stage2Layer2JetAlgorithmFirmwareImp1(CaloParams* params) :
+l1t::Stage2Layer2JetAlgorithmFirmwareImp1::Stage2Layer2JetAlgorithmFirmwareImp1(CaloParamsHelper* params) :
   params_(params){}
 
 
@@ -58,7 +58,7 @@ void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::processEvent(const std::vector<l
   create(towers, jets, alljets, params_->jetPUSType());
 
   // jet energy corrections
-  calibrate(jets, 10/params_->jetLsb()); // pass the jet collection and the hw threshold above which to calibrate 
+  calibrate(jets, 0); // pass the jet collection and the hw threshold above which to calibrate
   
 }
 
@@ -66,7 +66,7 @@ void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::processEvent(const std::vector<l
 void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::create(const std::vector<l1t::CaloTower> & towers, std::vector<l1t::Jet> & jets, 
 						       std::vector<l1t::Jet> & alljets, std::string PUSubMethod) {
   
-  int etaMax=40, etaMin=1, phiMax=72, phiMin=1;
+  int etaMax=36, etaMin=1, phiMax=72, phiMin=1;
   
   // etaSide=1 is positive eta, etaSide=-1 is negative eta
   for (int etaSide=1; etaSide>=-1; etaSide-=2) {
@@ -312,32 +312,52 @@ int l1t::Stage2Layer2JetAlgorithmFirmwareImp1::chunkyDonutPUEstimate(int jetEta,
             
     } 
     
-    // do EtaUp and EtaDown
+    // do EtaUp
     for (int iphi=jetPhi-size+1; iphi<jetPhi+size; ++iphi) {
       
-      int towPhi = iphi;
-      while ( towPhi > phiMax ) towPhi -= phiMax;
-      while ( towPhi < phiMin ) towPhi += phiMax;
+      if (ietaUp<=etaMax) {    
+        int towPhi = iphi;
+        while ( towPhi > phiMax ) towPhi -= phiMax;
+        while ( towPhi < phiMin ) towPhi += phiMax;
 
-      if (ietaUp>=etaMin && ietaUp<=etaMax) {    
-	const CaloTower& towEtaUp = CaloTools::getTower(towers, ietaUp, towPhi);
-	int towEt = towEtaUp.hwPt();
-	ring[2] += towEt;
-      }
-      
-      if (ietaDown>=etaMin && ietaDown<=etaMax) {
-	const CaloTower& towEtaDown = CaloTools::getTower(towers, ietaDown, towPhi);
-	int towEt = towEtaDown.hwPt();
-	ring[3] += towEt;
+        const CaloTower& towEtaUp = CaloTools::getTower(towers, ietaUp, towPhi);
+        int towEt = towEtaUp.hwPt();
+        ring[2] += towEt;
+      }else{
+        ring[2] = 0;
+        break;
       }
       
     } 
     
+    // do EtaDown
+    for (int iphi=jetPhi-size+1; iphi<jetPhi+size; ++iphi) {
+      
+      if (ietaDown>=etaMin) {
+        int towPhi = iphi;
+        while ( towPhi > phiMax ) towPhi -= phiMax;
+        while ( towPhi < phiMin ) towPhi += phiMax;
+	
+        const CaloTower& towEtaDown = CaloTools::getTower(towers, ietaDown, towPhi);
+        int towEt = towEtaDown.hwPt();
+        ring[3] += towEt;
+      }else{
+        ring[3] = 0;
+        break;
+      }
+      
+    }     
+    
+    
   }
   
   // for donut subtraction we only use the middle 2 (in energy) ring strips
-  std::sort(ring.begin(), ring.end(), std::greater<int>());
-  return ( ring[1]+ring[2] ); 
+  // std::sort(ring.begin(), ring.end(), std::greater<int>());
+  // return ( ring[1]+ring[2] ); 
+
+  // use lowest 3 strips as PU estimate
+  std::sort( ring.begin(), ring.end() );
+  return ( ring[0] + ring[1] + ring[2] );
 
 }
 
@@ -351,10 +371,32 @@ void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::calibrate(std::vector<l1t::Jet> 
     //Order the vector in terms of the parameters per eta bin, starting in -ve eta
     //So first 6 entries are very negative eta, next 6 are the next bin etc.
 
-    if( params_->jetCalibrationParams().size() != 132){
+    if( params_->jetCalibrationParams().size() != 6*22){
       edm::LogError("l1t|stage 2") << "Invalid input vector to calo params. Input vector of size: " <<
            params_->jetCalibrationParams().size() << "  Require size: 132  Not calibrating Stage 2 Jets" << std::endl;
       return;
+    }
+
+    //Make a map for the trigger towers eta to the RCT region eta
+    //80 TT to 22 RCT regions
+    //For UPGRADED HF, where 3 TT = 1 region.
+    //If you want to use this with legacy,
+    //you must adjust the mapping to use 64 TTs instead, otherwise it will
+    //associate the wrong TT with wrong region
+    int ttToRct[80];
+    int tt=0;
+    for(int rct=0; rct<22; rct++){
+      if(rct<4 || rct>17){
+        for(int i=0; i<3; i++){
+          ttToRct[tt] = rct;
+          tt++;
+        }
+      }else{
+        for(int i=0; i<4; i++){
+          ttToRct[tt] = rct;
+          tt++;
+        }
+      }
     }
 
     //Loop over jets and apply corrections
@@ -363,95 +405,30 @@ void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::calibrate(std::vector<l1t::Jet> 
       //Check jet is above the calibration threshold, if not do nothing
       if(jet->hwPt() < calibThreshold) continue;
 
-      //Make a map for the trigger towers eta to the RCT region eta
-      //80 TT to 22 RCT regions
-      int ttToRct[80];
-      int tt=0;
-      for(int rct=0; rct<22; rct++){
-        if(rct<4 || rct>17){
-          for(int i=0; i<3; i++){
-            ttToRct[tt] = rct;
-            tt++;
-          }
-        }else{
-          for(int i=0; i<4; i++){
-            ttToRct[tt] = rct;
-            tt++;
-          }
-        }
-      }
-
       int etaBin;
       if(jet->hwEta() < 0) //Account for a lack of 0
         etaBin = ttToRct[ jet->hwEta() + 40 ];
       else 
         etaBin = ttToRct[ jet->hwEta() + 39 ];
 
-      double params[6]; //These are the parameters of the fit
-      double ptValue[1]; //This is the pt value to be corrected
-
-      ptValue[0] = jet->hwPt()*params_->jetLsb(); //Corrections derived in terms of physical pt
-
       //Get the parameters from the vector
       //Each 6 values are the parameters for an eta bin
+      double params[6];
       for(int i=0; i<6; i++){
         params[i] = params_->jetCalibrationParams()[etaBin*6 + i];
       }
 
       //Perform the correction based on the calibration function defined
       //in calibFit
-      //This is derived from the actual pt of the jets, not the hwEt
+      //This is derived from the actual physical pt of the jets, not the hwEt
       //This needs to be addressed in the future
-      double correction =  calibFit(ptValue,params);
+      double ptPhys = jet->hwPt() * params_->jetLsb();
+      double correction = calibFit(ptPhys, params);
 
       math::XYZTLorentzVector p4;
       *jet = l1t::Jet( p4, correction*jet->hwPt(), jet->hwEta(), jet->hwPhi(), 0);
 
     }
-
-
-  } else if( params_->jetCalibrationType() == "function6PtParams80EtaBins" ) { // If we want TT level calibration
-
-    if( params_->jetCalibrationParams().size() != 480){
-      edm::LogError("l1t|stage 2") << "Invalid input vector to calo params. Input vector of size: " <<
-           params_->jetCalibrationParams().size() << "  Require size: 480  Not calibrating Stage 2 Jets" << std::endl;
-      return;
-    }
-
-    //Loop over jets and apply corrections
-    for(std::vector<l1t::Jet>::iterator jet = jets.begin(); jet!=jets.end(); jet++){
-
-      int etaBin;
-      if(jet->hwEta() < 0) //Account for a lack of 0
-        etaBin = jet->hwEta() + 40;
-      else 
-        etaBin = jet->hwEta() + 39;
-
-
-      double params[6]; //These are the parameters of the fit
-      double ptValue[1]; //This is the pt value to be corrected
-
-      ptValue[0] = jet->hwPt()*params_->jetLsb(); //Corrections derived in terms of physical pt
-
-      //Get the parameters from the vector
-      //Each 6 values are the parameters for an eta bin
-      for(int i=0; i<6; i++){
-        params[i] = params_->jetCalibrationParams()[etaBin*6 + i];
-      }
-
-      //Perform the correction based on the calibration function defined
-      //in calibFit
-      double correction =  calibFit(ptValue,params);
-
-      math::XYZTLorentzVector p4;
-      *jet = l1t::Jet( p4, correction*jet->hwPt(), jet->hwEta(), jet->hwPhi(), 0);
-
-    }
-
-  } else if( params_->jetCalibrationType() == "lut6PtBins22EtaBins" ) { // If we want to use a LUT instead
-
-    edm::LogError("l1t|stage 2") << "No LUT implementation for the calibration yet" << std::endl;
-    return;
 
   } else {
     if(params_->jetCalibrationType() != "None" && params_->jetCalibrationType() != "none") 
@@ -463,16 +440,18 @@ void l1t::Stage2Layer2JetAlgorithmFirmwareImp1::calibrate(std::vector<l1t::Jet> 
 }
 
 //Function for the calibration, correct as a function of pT in bins of eta
-double l1t::Stage2Layer2JetAlgorithmFirmwareImp1::calibFit( double *v, double *par ){
+double l1t::Stage2Layer2JetAlgorithmFirmwareImp1::calibFit( double pt, double *par ){
 
-  // JETMET uses log10 rather than the ln used here...
-  double logX = log(v[0]);
+  double logX = log10(pt);
 
   double term1 = par[1] / ( logX * logX + par[2] );
   double term2 = par[3] * exp( -par[4]*((logX - par[5])*(logX - par[5])) );
 
-  // Final fitting function 
-  double f    = par[0] + term1 + term2; 
-
+  // Final fitting function, with sanity check
+  double f = par[0] + term1 + term2;
+  if (f < 0)
+    f = 0;
+  if (f != f) // stop NaN
+    f = 1;
   return f;
 }

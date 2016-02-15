@@ -15,7 +15,6 @@
 #include "DataFormats/Common/interface/Handle.h"
 #include "CondFormats/SiStripObjects/interface/SiStripNoises.h"
 #include "CondFormats/SiStripObjects/interface/SiStripBadStrip.h"
-#include "DataFormats/Common/interface/RefGetter.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 #include "RecoTracker/TransientTrackingRecHit/interface/TSiStripRecHit2DLocalPos.h"
 
@@ -82,7 +81,7 @@ public:
 };
 
 
-class dso_hidden TkStripMeasurementDet GCC11_FINAL : public MeasurementDet {
+class dso_hidden TkStripMeasurementDet final : public MeasurementDet {
 public:
   
   typedef StripClusterParameterEstimator::LocalValues    LocalValues;

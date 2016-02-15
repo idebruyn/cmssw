@@ -11,6 +11,8 @@
 <bin file="testReadWritePayloads.cpp" name="testReadWritePayloads">
 </bin>
 
+<bin   file="testConditionDatabase_0.cpp" name="testConditionDatabase_0">
+</bin>
 <bin   file="testConditionDatabase_1.cpp" name="testConditionDatabase_1">
 </bin>
 
@@ -24,5 +26,9 @@
 </bin>
 
 <bin   file="testFrontier.cpp" name="testFrontier">
+</bin>
+
+<bin   file="testConnectionPool.cpp" name="testConnectionPool">
+  <use   name="CondFormats/RunInfo"/>
 </bin>
 

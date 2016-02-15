@@ -207,3 +207,48 @@ REGISTER_PLUGIN(L1CaloGeometryRecord, L1CaloGeometry);
 using namespace l1t;
 REGISTER_PLUGIN(L1TCaloParamsRcd, CaloParams);
 REGISTER_PLUGIN(L1TCaloConfigRcd, CaloConfig);
+
+#include "CondFormats/L1TObjects/interface/L1TMuonOverlapParams.h"
+#include "CondFormats/DataRecord/interface/L1TMuonOverlapParamsRcd.h"
+
+#include "CondFormats/L1TObjects/interface/L1TMuonBarrelParams.h"
+#include "CondFormats/DataRecord/interface/L1TMuonBarrelParamsRcd.h"
+
+#include "CondFormats/L1TObjects/interface/L1TMuonGlobalParams.h"
+#include "CondFormats/DataRecord/interface/L1TMuonGlobalParamsRcd.h"
+
+REGISTER_PLUGIN(L1TMuonOverlapParamsRcd, L1TMuonOverlapParams);
+REGISTER_PLUGIN(L1TMuonBarrelParamsRcd, L1TMuonBarrelParams);
+REGISTER_PLUGIN(L1TMuonGlobalParamsRcd, L1TMuonGlobalParams);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmAlgorithm.h"
+#include "CondFormats/DataRecord/interface/L1TUtmAlgorithmRcd.h"
+REGISTER_PLUGIN(L1TUtmAlgorithmRcd, L1TUtmAlgorithm);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmBin.h"
+#include "CondFormats/DataRecord/interface/L1TUtmBinRcd.h"
+REGISTER_PLUGIN(L1TUtmBinRcd, L1TUtmBin);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmCondition.h"
+#include "CondFormats/DataRecord/interface/L1TUtmConditionRcd.h"
+REGISTER_PLUGIN(L1TUtmConditionRcd, L1TUtmCondition);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmCut.h"
+#include "CondFormats/DataRecord/interface/L1TUtmCutRcd.h"
+REGISTER_PLUGIN(L1TUtmCutRcd, L1TUtmCut);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmCutValue.h"
+#include "CondFormats/DataRecord/interface/L1TUtmCutValueRcd.h"
+REGISTER_PLUGIN(L1TUtmCutValueRcd, L1TUtmCutValue);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmObject.h"
+#include "CondFormats/DataRecord/interface/L1TUtmObjectRcd.h"
+REGISTER_PLUGIN(L1TUtmObjectRcd, L1TUtmObject);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmScale.h"
+#include "CondFormats/DataRecord/interface/L1TUtmScaleRcd.h"
+REGISTER_PLUGIN(L1TUtmScaleRcd, L1TUtmScale);
+
+#include "CondFormats/L1TObjects/interface/L1TUtmTriggerMenu.h"
+#include "CondFormats/DataRecord/interface/L1TUtmTriggerMenuRcd.h"
+REGISTER_PLUGIN(L1TUtmTriggerMenuRcd, L1TUtmTriggerMenu);

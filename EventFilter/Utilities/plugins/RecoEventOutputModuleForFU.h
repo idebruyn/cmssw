@@ -38,10 +38,10 @@ namespace evf {
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
     
   private:
-    virtual void start() const;
-    virtual void stop() const;
-    virtual void doOutputHeader(InitMsgBuilder const& init_message) const;
-    virtual void doOutputEvent(EventMsgBuilder const& msg) const;
+    virtual void start() override;
+    virtual void stop() override;
+    virtual void doOutputHeader(InitMsgBuilder const& init_message) override;
+    virtual void doOutputEvent(EventMsgBuilder const& msg) override;
     //virtual void beginRun(edm::RunPrincipal const&, edm::ModuleCallingContext const*);
     virtual void beginJob() override;
     virtual void beginLuminosityBlock(edm::LuminosityBlockPrincipal const&, edm::ModuleCallingContext const*) override;
@@ -61,6 +61,7 @@ namespace evf {
     jsoncollector::StringJ inputFiles_;
     jsoncollector::IntJ fileAdler32_; 
     jsoncollector::StringJ transferDestination_; 
+    jsoncollector::IntJ hltErrorEvents_; 
     boost::shared_ptr<jsoncollector::FastMonitor> jsonMonitor_;
     evf::FastMonitoringService *fms_;
     jsoncollector::DataPointDefinition outJsonDef_;
@@ -85,6 +86,7 @@ namespace evf {
     inputFiles_(),
     fileAdler32_(1),
     transferDestination_(),
+    hltErrorEvents_(0),
     outBuf_(new unsigned char[1024*1024])
   {
     std::string baseRunDir = edm::Service<evf::EvFDaqDirector>()->baseRunDir();
@@ -122,6 +124,7 @@ namespace evf {
     inputFiles_.setName("InputFiles");
     fileAdler32_.setName("FileAdler32");
     transferDestination_.setName("TransferDestination");
+    hltErrorEvents_.setName("HLTErrorEvents");
 
     outJsonDef_.setDefaultGroup("data");
     outJsonDef_.addLegendItem("Processed","integer",jsoncollector::DataPointDefinition::SUM);
@@ -133,6 +136,7 @@ namespace evf {
     outJsonDef_.addLegendItem("InputFiles","string",jsoncollector::DataPointDefinition::CAT);
     outJsonDef_.addLegendItem("FileAdler32","integer",jsoncollector::DataPointDefinition::ADLER32);
     outJsonDef_.addLegendItem("TransferDestination","string",jsoncollector::DataPointDefinition::SAME);
+    outJsonDef_.addLegendItem("HLTErrorEvents","integer",jsoncollector::DataPointDefinition::SUM);
     std::stringstream tmpss,ss;
     tmpss << baseRunDir << "/open/" << "output_" << getpid() << ".jsd";
     ss << baseRunDir << "/" << "output_" << getpid() << ".jsd";
@@ -161,6 +165,7 @@ namespace evf {
     jsonMonitor_->registerGlobalMonitorable(&inputFiles_,false);
     jsonMonitor_->registerGlobalMonitorable(&fileAdler32_,false);
     jsonMonitor_->registerGlobalMonitorable(&transferDestination_,false);
+    jsonMonitor_->registerGlobalMonitorable(&hltErrorEvents_,false);
     jsonMonitor_->commit(nullptr);
 
   }
@@ -170,7 +175,7 @@ namespace evf {
 
   template<typename Consumer>
   void
-  RecoEventOutputModuleForFU<Consumer>::start() const
+  RecoEventOutputModuleForFU<Consumer>::start()
   {
     const std::string openInitFileName = edm::Service<evf::EvFDaqDirector>()->getOpenInitFilePath(stream_label_);
     edm::LogInfo("RecoEventOutputModuleForFU") << "start() method, initializing streams. init stream -: "  
@@ -182,14 +187,14 @@ namespace evf {
   
   template<typename Consumer>
   void
-  RecoEventOutputModuleForFU<Consumer>::stop() const
+  RecoEventOutputModuleForFU<Consumer>::stop()
   {
     c_->stop();
   }
 
   template<typename Consumer>
   void
-  RecoEventOutputModuleForFU<Consumer>::doOutputHeader(InitMsgBuilder const& init_message) const
+  RecoEventOutputModuleForFU<Consumer>::doOutputHeader(InitMsgBuilder const& init_message)
   {
     c_->doOutputHeader(init_message);
 
@@ -221,7 +226,7 @@ namespace evf {
    
   template<typename Consumer>
   void
-  RecoEventOutputModuleForFU<Consumer>::doOutputEvent(EventMsgBuilder const& msg) const {
+  RecoEventOutputModuleForFU<Consumer>::doOutputEvent(EventMsgBuilder const& msg) {
 	accepted_.value()++;
     c_->doOutputEvent(msg); // You can't use msg in RecoEventOutputModuleForFU after this point
   }
@@ -232,7 +237,7 @@ namespace evf {
     edm::ParameterSetDescription desc;
     edm::StreamerOutputModuleBase::fillDescription(desc);
     Consumer::fillDescription(desc);
-    descriptions.add("streamerOutput", desc);
+    descriptions.add("EvFOutputModule", desc);
   }
 
   template<typename Consumer>

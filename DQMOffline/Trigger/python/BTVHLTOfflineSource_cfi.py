@@ -10,7 +10,7 @@ BTVHLTOfflineSource = cms.EDAnalyzer(
     triggerSummaryLabel = cms.InputTag("hltTriggerSummaryAOD","","HLT"),
     triggerResultsLabel = cms.InputTag("TriggerResults","","HLT"),
     offlineCSVLabelPF = cms.InputTag("pfCombinedInclusiveSecondaryVertexV2BJetTags"),
-    offlineCSVLabelCalo = cms.InputTag("combinedInclusiveSecondaryVertexV2BJetTags"),
+    offlineCSVLabelCalo = cms.InputTag("pfCombinedInclusiveSecondaryVertexV2BJetTags"),
     hltFastPVLabel = cms.InputTag("hltFastPrimaryVertex"),
     hltPFPVLabel = cms.InputTag("hltVerticesPFSelector"),
     hltCaloPVLabel = cms.InputTag("hltVerticesL3"),    
@@ -19,7 +19,7 @@ BTVHLTOfflineSource = cms.EDAnalyzer(
     #
     pathPairs = cms.VPSet(
         cms.PSet(
-            pathname = cms.string("HLT_QuadPFJet_SingleBTagCSV_VBF"),
+            pathname = cms.string("HLT_QuadPFJet_BTagCSV_p037_VBF"),
             pathtype = cms.string("PF"),
         ),
         cms.PSet(

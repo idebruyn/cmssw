@@ -34,7 +34,6 @@
 #include "FWCore/Framework/interface/ESWatcher.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "CondCore/DBCommon/interface/Time.h"
 
 /*** Alignment ***/
 #include "Alignment/CommonAlignmentMonitor/interface/AlignmentMonitorBase.h"
@@ -140,7 +139,7 @@ class PCLTrackerAlProducer : public edm::EDAnalyzer {
     void initBeamSpot(const edm::Event&);
 
     /// Creates ideal geometry @theTrackerGeometry from IdealGeometryRecord
-    void createGeometries(const edm::EventSetup&);
+    void createGeometries(const edm::EventSetup&, const TrackerTopology*);
 
     /// Applies Alignments from Database (GlobalPositionRcd) to Geometry
     /// @theTrackerGeometry

@@ -18,14 +18,16 @@ caloParams = cms.ESProducer(
     towerNBitsE      = cms.int32(8),
     towerNBitsSum    = cms.int32(9),
     towerNBitsRatio  = cms.int32(3),
-    towerEncoding    = cms.bool(False),
+    towerEncoding    = cms.bool(True),
 
     # regions
     regionLsb        = cms.double(0.5),
     regionPUSType    = cms.string("None"),
+    regionPUSVersion = cms.int32(0),
     regionPUSParams  = cms.vdouble(),
 
     # EG
+    egEtaCut                   = cms.int32(0),
     egLsb                      = cms.double(0.5),
     egSeedThreshold            = cms.double(2.),
     egNeighbourThreshold       = cms.double(1.),
@@ -36,13 +38,18 @@ caloParams = cms.ESProducer(
     egMaxHOverE                = cms.double(0.15),
     egMaxHOverELUTFile         = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egMaxHOverELUT.txt"),
     egCompressShapesLUTFile    = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egCompressShapesLUT.txt"),
+    egShapeIdType              = cms.string("unspecified"),
+    egShapeIdVersion           = cms.uint32(0),
     egShapeIdLUTFile           = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egShapeIdLUT.txt"),
+    egCalibrationType          = cms.string("unspecified"),
+    egCalibrationVersion       = cms.uint32(0),
     egCalibrationLUTFile       = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egCalibrationLUT.txt"),
     egMinPtJetIsolation      = cms.int32(25),
     egMaxPtJetIsolation      = cms.int32(63),
     egMinPtHOverEIsolation                    = cms.int32(1),
     egMaxPtHOverEIsolation                    = cms.int32(40),
     egPUSType               = cms.string("None"),
+    egIsolationType          = cms.string("unspecified"),
     egIsoLUTFile               = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egIsoLUT.txt"),
     #egIsoLUTFileBarrel         = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egIsoLUT_stage1_isol0.30.txt"),
     #egIsoLUTFileEndcaps        = cms.FileInPath("L1Trigger/L1TCalorimeter/data/egIsoLUT_stage1_isol0.50.txt"),
@@ -54,6 +61,7 @@ caloParams = cms.ESProducer(
     egIsoMaxEtaAbsForIsoSum    = cms.uint32(27),
 
     # Tau
+    tauRegionMask                 = cms.int32(0),
     tauLsb                        = cms.double(0.5),
     tauSeedThreshold              = cms.double(7.),
     tauNeighbourThreshold         = cms.double(0.),
@@ -70,10 +78,12 @@ caloParams = cms.ESProducer(
     tauIsoLUTFile                 = cms.FileInPath("L1Trigger/L1TCalorimeter/data/tauIsoLUTetPU.txt"),
     tauCalibrationLUTFileEta      = cms.FileInPath("L1Trigger/L1TCalorimeter/data/tauCalibrationLUTEta.txt"),
     tauCalibrationLUTFile         = cms.FileInPath("L1Trigger/L1TCalorimeter/data/tauCalibrationLUT.txt"),
+    tauCompressLUTFile            = cms.FileInPath("L1Trigger/L1TCalorimeter/data/Tau_Eta_Et_compression_LUT.txt"),
     tauEtToHFRingEtLUTFile        = cms.FileInPath("L1Trigger/L1TCalorimeter/data/tauHwEtToHFRingScale_LUT.txt"),
     tauPUSParams                  = cms.vdouble(1,4,27),
 
     # jets
+    jetRegionMask         = cms.int32(0),
     jetLsb                = cms.double(0.5),
     jetSeedThreshold      = cms.double(0.),
     jetNeighbourThreshold = cms.double(0.),
@@ -90,6 +100,9 @@ caloParams = cms.ESProducer(
     etSumEtThreshold        = cms.vdouble(0.,  0.,   0.,   0.),
 
     # HI
+    centralityNodeVersion = cms.int32(1),
+    centralityRegionMask = cms.int32(0),
+    minimumBiasThresholds = cms.vint32(0, 0, 0, 0),
     centralityLUTFile = cms.FileInPath("L1Trigger/L1TCalorimeter/data/centralityLUT_stage1.txt"),
     q2LUTFile         = cms.FileInPath("L1Trigger/L1TCalorimeter/data/q2LUT_stage1.txt")
 

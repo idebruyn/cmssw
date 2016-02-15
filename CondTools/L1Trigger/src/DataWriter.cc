@@ -2,9 +2,7 @@
 
 #include "CondTools/L1Trigger/interface/DataWriter.h"
 #include "CondTools/L1Trigger/interface/Exception.h"
-#include "CondCore/MetaDataService/interface/MetaData.h"
-#include "CondCore/IOVService/interface/IOVProxy.h"
-#include "CondCore/DBCommon/interface/Exception.h"
+#include "CondCore/CondDB/interface/Exception.h"
 
 #include "CondCore/CondDB/interface/Serialization.h"
 

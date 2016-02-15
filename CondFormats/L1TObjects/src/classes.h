@@ -48,9 +48,22 @@
 #include "CondFormats/L1TObjects/interface/CaloParams.h"
 #include "CondFormats/L1TObjects/interface/CaloConfig.h"
 
+#include "CondFormats/L1TObjects/interface/L1TMuonOverlapParams.h"
+#include "CondFormats/L1TObjects/interface/L1TMuonGlobalParams.h"
+#include "CondFormats/L1TObjects/interface/L1TMuonBarrelParams.h"
+
+#include "CondFormats/L1TObjects/interface/L1TUtmAlgorithm.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmBin.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmCondition.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmCut.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmCutValue.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmObject.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmScale.h"
+#include "CondFormats/L1TObjects/interface/L1TUtmTriggerMenu.h"
 
 namespace CondFormats_L1TObjects {
   struct dictionary {
+    
     std::vector<l1t::CaloParams::Node> dummy1a;
     l1t::CaloParams dummy1b;
     l1t::LUT dummy1c;
@@ -75,6 +88,25 @@ namespace CondFormats_L1TObjects {
 //    std::vector<L1RPCConeDefinition::TLPSize> dummy15;
 //    std::vector<L1RPCConeDefinition::TRingToTower> dummy15a;
 //    std::vector<L1RPCConeDefinition::TRingToLP> dummy15b;
+    L1TMuonGlobalParams dummy16;
+    std::vector<L1TMuonGlobalParams::Node> dummy16a;
+
+
+    L1TMuonOverlapParams dummy17;
+    std::vector< L1TMuonOverlapParams::Node> dummy17a;
+
+    L1TMuonBarrelParams dummy18;
+    std::vector<L1TMuonBarrelParams::Node> dummy18a;
+
+
+    L1TUtmAlgorithm dummy19a;
+    L1TUtmBin dummy19b;
+    L1TUtmCondition dummy19c;
+    L1TUtmCut dummy19d;
+    L1TUtmCutValue dummy19e;
+    L1TUtmObject dummy19f;
+    L1TUtmScale dummy19g;
+    L1TUtmTriggerMenu dummy19h;
 
   };
 }

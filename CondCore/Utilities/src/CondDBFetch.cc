@@ -2,7 +2,7 @@
 
 #define FETCH_PAYLOAD_CASE( TYPENAME ) \
   if( payloadTypeName == #TYPENAME ){ \
-    auto payload = deserialize<TYPENAME>( payloadTypeName, data, streamerInfo, isOra ); \
+    auto payload = deserialize<TYPENAME>( payloadTypeName, data, streamerInfo ); \
     payloadPtr = payload; \
     match = true; \
   }
@@ -20,7 +20,7 @@ namespace cond {
 
   namespace persistency {
 
-    std::pair<std::string, boost::shared_ptr<void> > fetchOne( const std::string &payloadTypeName, const cond::Binary &data, const cond::Binary &streamerInfo, boost::shared_ptr<void> payloadPtr, bool isOra ){
+    std::pair<std::string, boost::shared_ptr<void> > fetchOne( const std::string &payloadTypeName, const cond::Binary &data, const cond::Binary &streamerInfo, boost::shared_ptr<void> payloadPtr ){
 
       bool match = false;
       FETCH_PAYLOAD_CASE( std::string ) 
@@ -202,6 +202,17 @@ namespace cond {
       FETCH_PAYLOAD_CASE( L1RPCHwConfig )
       FETCH_PAYLOAD_CASE( l1t::CaloParams )
       FETCH_PAYLOAD_CASE( l1t::CaloConfig )
+      FETCH_PAYLOAD_CASE( L1TMuonBarrelParams )
+      FETCH_PAYLOAD_CASE( L1TMuonGlobalParams )
+      FETCH_PAYLOAD_CASE( L1TMuonOverlapParams )
+      FETCH_PAYLOAD_CASE( L1TUtmAlgorithm )
+      FETCH_PAYLOAD_CASE( L1TUtmBin )
+      FETCH_PAYLOAD_CASE( L1TUtmCondition )
+      FETCH_PAYLOAD_CASE( L1TUtmCut )
+      FETCH_PAYLOAD_CASE( L1TUtmCutValue )
+      FETCH_PAYLOAD_CASE( L1TUtmObject )
+      FETCH_PAYLOAD_CASE( L1TUtmScale )
+      FETCH_PAYLOAD_CASE( L1TUtmTriggerMenu )
       FETCH_PAYLOAD_CASE( L1TriggerKey )
       FETCH_PAYLOAD_CASE( L1TriggerKeyList )
       FETCH_PAYLOAD_CASE( lumi::LumiSectionData )
@@ -213,11 +224,11 @@ namespace cond {
       FETCH_PAYLOAD_CASE( PhysicsTGraphPayload )
       FETCH_PAYLOAD_CASE( PhysicsTFormulaPayload )
       FETCH_PAYLOAD_CASE( PCaloGeometry )
-      FETCH_PAYLOAD_CASE( PHcalParameters )
       FETCH_PAYLOAD_CASE( HcalParameters )
       FETCH_PAYLOAD_CASE( PGeometricDet )
       FETCH_PAYLOAD_CASE( PGeometricDetExtra )
       FETCH_PAYLOAD_CASE( PTrackerParameters )
+      FETCH_PAYLOAD_CASE( PHGCalParameters )
       //FETCH_PAYLOAD_CASE( PerformancePayload )
       FETCH_PAYLOAD_CASE( PerformancePayloadFromTable )
       FETCH_PAYLOAD_CASE( PerformancePayloadFromTFormula )
@@ -278,17 +289,17 @@ namespace cond {
 
       //   
       if( payloadTypeName == "PhysicsTools::Calibration::Histogram3D<double,double,double,double>" ){    
-	auto payload = deserialize<PhysicsTools::Calibration::Histogram3D<double,double,double,double> >(payloadTypeName, data, streamerInfo, isOra );
+	auto payload = deserialize<PhysicsTools::Calibration::Histogram3D<double,double,double,double> >(payloadTypeName, data, streamerInfo );
 	payloadPtr = payload;
 	match = true;
       }
       if( payloadTypeName == "PhysicsTools::Calibration::Histogram2D<double,double,double>" ){    
-	auto payload = deserialize<PhysicsTools::Calibration::Histogram2D<double,double,double> >(payloadTypeName, data, streamerInfo, isOra );
+	auto payload = deserialize<PhysicsTools::Calibration::Histogram2D<double,double,double> >(payloadTypeName, data, streamerInfo );
 	payloadPtr = payload;
 	match = true;
       }
       if( payloadTypeName == "std::vector<unsignedlonglong,std::allocator<unsignedlonglong>>" ){
-	auto payload = deserialize<std::vector<unsigned long long> >( payloadTypeName, data, streamerInfo, isOra );
+	auto payload = deserialize<std::vector<unsigned long long> >( payloadTypeName, data, streamerInfo );
 	payloadPtr = payload;
 	match = true;
       }
@@ -303,10 +314,8 @@ namespace cond {
       cond::Binary streamerInfo;
       std::string payloadTypeName;
       bool found = session.fetchPayloadData( payloadId, payloadTypeName, data, streamerInfo );
-      if( !found ) throwException( "Payload with id "+boost::lexical_cast<std::string>(payloadId)+" has not been found in the database.","fetchAndCompare" );
-      //std::cout <<"--> payload type "<<payloadTypeName<<" has blob size "<<data.size()<<std::endl;
-      bool isOra = session.isOraSession();
-      return fetchOne(payloadTypeName, data, streamerInfo, payloadPtr, isOra);
+      if( !found ) throwException( "Payload with id "+boost::lexical_cast<std::string>(payloadId)+" has not been found in the database.","fetch" );
+      return fetchOne(payloadTypeName, data, streamerInfo, payloadPtr );
     }
 
  }

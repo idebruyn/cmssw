@@ -2,7 +2,6 @@
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 
-
 #include <DQM/L1TMonitor/interface/L1TFED.h>
 DEFINE_FWK_MODULE(L1TFED);
 
@@ -27,6 +26,14 @@ DEFINE_FWK_MODULE(L1TRPCTF);
 #include <DQM/L1TMonitor/interface/L1TGMT.h>
 DEFINE_FWK_MODULE(L1TGMT);
 
+#include <DQM/L1TMonitor/interface/L1TStage2CaloLayer2.h>
+DEFINE_FWK_MODULE(L1TStage2CaloLayer2);
+
+#include <DQM/L1TMonitor/interface/L1TStage2mGMT.h>
+DEFINE_FWK_MODULE(L1TStage2mGMT);
+
+#include <DQM/L1TMonitor/interface/L1TStage2BMTF.h>
+DEFINE_FWK_MODULE(L1TStage2BMTF);
 
 #include <DQM/L1TMonitor/interface/L1TGCT.h>
 DEFINE_FWK_MODULE(L1TGCT);

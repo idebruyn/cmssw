@@ -88,10 +88,14 @@ def miniAOD_customizeCommon(process):
     #
     # apply type I + other PFMEt corrections to pat::MET object
     # and estimate systematic uncertainties on MET
+
+    process.selectedPatJetsForMETUnc = process.selectedPatJets.clone()
+    process.selectedPatJetsForMETUnc.cut = cms.string("pt > 15")
+
     from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncForMiniAODProduction
     runMetCorAndUncForMiniAODProduction(process, metType="PF",
                                         jetCollUnskimmed="patJets",
-                                        jetColl="selectedPatJets")
+                                        jetColl="selectedPatJetsForMETUnc")
     
     #caloMET computation
     from PhysicsTools.PatAlgos.tools.metTools import addMETCollection
@@ -127,6 +131,10 @@ def miniAOD_customizeCommon(process):
 
     #keep this after all addJetCollections otherwise it will attempt computing them also for stuf with no taginfos
     #Some useful BTAG vars
+    if not hasattr( process, 'pfImpactParameterTagInfos' ):
+        process.load('RecoBTag.ImpactParameter.pfImpactParameterTagInfos_cfi')
+    if not hasattr( process, 'pfSecondaryVertexTagInfos' ):
+        process.load('RecoBTag.SecondaryVertex.pfSecondaryVertexTagInfos_cfi')
     process.patJets.userData.userFunctions = cms.vstring(
     '?(tagInfoCandSecondaryVertex("pfSecondaryVertex").nVertices()>0)?(tagInfoCandSecondaryVertex("pfSecondaryVertex").secondaryVertex(0).p4.M):(0)',
     '?(tagInfoCandSecondaryVertex("pfSecondaryVertex").nVertices()>0)?(tagInfoCandSecondaryVertex("pfSecondaryVertex").secondaryVertex(0).numberOfSourceCandidatePtrs):(0)',
@@ -165,9 +173,11 @@ def miniAOD_customizeCommon(process):
     #VID Electron IDs
     electron_ids = ['RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_PHYS14_PU20bx25_V2_cff',
                     'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_25ns_V1_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_50ns_V1_cff',
+                    'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Spring15_50ns_V2_cff',
                     'RecoEgamma.ElectronIdentification.Identification.heepElectronID_HEEPV60_cff',
-                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff']
+                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_nonTrig_V1_cff',
+                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_25ns_Trig_V1_cff',
+                    'RecoEgamma.ElectronIdentification.Identification.mvaElectronID_Spring15_50ns_Trig_V1_cff']
     switchOnVIDElectronIdProducer(process,DataFormat.MiniAOD)
     process.egmGsfElectronIDs.physicsObjectSrc = \
         cms.InputTag("reducedEgamma","reducedGedGsfElectrons")
@@ -179,7 +189,7 @@ def miniAOD_customizeCommon(process):
         setupAllVIDIdsInModule(process,idmod,setupVIDElectronSelection,None,False)
 
     #VID Photon IDs
-    photon_ids = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_PHYS14_PU20bx25_V2p1_cff',
+    photon_ids = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring15_25ns_V1_cff',
                   'RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring15_50ns_V1_cff',
                   'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Spring15_25ns_nonTrig_V2p1_cff',
                   'RecoEgamma.PhotonIdentification.Identification.mvaPhotonID_Spring15_50ns_nonTrig_V2p1_cff']
@@ -196,7 +206,13 @@ def miniAOD_customizeCommon(process):
         cms.InputTag('reducedEgamma','reducedGedPhotons')
     for idmod in photon_ids:
         setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection,None,False)
-    
+
+    #---------------------------------------------------------------------------
+    #Adding  Boosted Subjets taus
+    from RecoTauTag.Configuration.boostedHPSPFTaus_cfi import addBoostedTaus
+    addBoostedTaus(process)
+    #---------------------------------------------------------------------------
+
     # Adding puppi jets
     process.load('CommonTools.PileupAlgos.Puppi_cff')
     process.load('RecoJets.JetProducers.ak4PFJetsPuppi_cfi')
@@ -227,7 +243,7 @@ def miniAOD_customizeCommon(process):
     )
 
     addJetCollection(process, postfix   = "", labelName = 'Puppi', jetSource = cms.InputTag('ak4PFJetsPuppi'),
-                    jetCorrections = ('AK4PFchs', ['L2Relative', 'L3Absolute'], ''),
+                    jetCorrections = ('AK4PFPuppi', ['L2Relative', 'L3Absolute'], ''),
                     algo= 'AK', rParam = 0.4, btagDiscriminators = map(lambda x: x.value() ,process.patJets.discriminatorSources)
                     )
     
@@ -254,7 +270,7 @@ def miniAOD_customizeCommon(process):
     # type1 correction, from puppi jets
     process.corrPfMetType1Puppi = process.corrPfMetType1.clone(
         src = 'ak4PFJetsPuppi',
-        jetCorrLabel = 'ak4PFCHSL2L3Corrector',
+        jetCorrLabel = 'ak4PFPuppiL2L3Corrector',
     )
     del process.corrPfMetType1Puppi.offsetCorrLabel # no L1 for PUPPI jets
     process.pfMetT1Puppi = process.pfMetT1.clone(
@@ -292,6 +308,9 @@ def miniAOD_customizeMC(process):
     process.photonMatch.src = cms.InputTag("reducedEgamma","reducedGedPhotons")
     process.tauMatch.matched = "prunedGenParticles"
     process.tauGenJets.GenParticles = "prunedGenParticles"
+    #Boosted taus 
+    process.tauMatchBoosted.matched = "prunedGenParticles"
+    process.tauGenJetsBoosted.GenParticles = "prunedGenParticles"
     process.patJetPartons.particles = "prunedGenParticles"
     process.patJetPartonMatch.matched = "prunedGenParticles"
     process.patJetPartonMatch.mcStatus = [ 3, 23 ]
@@ -301,6 +320,7 @@ def miniAOD_customizeMC(process):
     process.patElectrons.embedGenMatch = False
     process.patPhotons.embedGenMatch = False
     process.patTaus.embedGenMatch = False
+    process.patTausBoosted.embedGenMatch = False
     process.patJets.embedGenPartonMatch = False
     #also jet flavour must be switched
     process.patJetFlavourAssociation.rParam = 0.4

@@ -148,6 +148,7 @@ import TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff
 tobTecStepTrajectoryFilter = TrackingTools.TrajectoryFiltering.TrajectoryFilter_cff.CkfBaseTrajectoryFilter_block.clone(
     maxLostHits = 0,
     minimumNumberOfHits = 5,
+    seedPairPenalty = 1,
     minPt = 0.1,
     minHitsMinPt = 3
     )
@@ -155,12 +156,13 @@ tobTecStepTrajectoryFilter = TrackingTools.TrajectoryFiltering.TrajectoryFilter_
 tobTecStepInOutTrajectoryFilter = tobTecStepTrajectoryFilter.clone(
     maxLostHits = 0,
     minimumNumberOfHits = 4,
+    seedPairPenalty = 1,
     minPt = 0.1,
     minHitsMinPt = 3
     )
 
-import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi
-tobTecStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimatorESProducer_cfi.Chi2ChargeMeasurementEstimator.clone(
+import RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi
+tobTecStepChi2Est = RecoTracker.MeasurementDet.Chi2ChargeMeasurementEstimator_cfi.Chi2ChargeMeasurementEstimator.clone(
     ComponentName = cms.string('tobTecStepChi2Est'),
     nSigma = cms.double(3.0),
     MaxChi2 = cms.double(16.0),

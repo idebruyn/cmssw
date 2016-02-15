@@ -26,18 +26,11 @@
 #include "L1Trigger/L1TGlobal/interface/CaloTemplate.h"
 #include "L1Trigger/L1TGlobal/interface/ConditionEvaluation.h"
 
-#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetupFwd.h"
-
 #include "DataFormats/L1Trigger/interface/L1Candidate.h"
-/*#include "DataFormats/L1GlobalCaloTrigger/interface/L1GctCand.h"
-#include "DataFormats/L1GlobalCaloTrigger/interface/L1GctEmCand.h"
-#include "DataFormats/L1GlobalCaloTrigger/interface/L1GctJetCand.h"
-*/
 
 #include "CondFormats/L1TObjects/interface/GlobalStableParameters.h"
 #include "CondFormats/DataRecord/interface/L1TGlobalStableParametersRcd.h"
 
-#include "L1Trigger/GlobalTrigger/interface/L1GlobalTriggerFunctions.h"
 #include "L1Trigger/L1TGlobal/interface/GtBoard.h"
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -236,15 +229,16 @@ const bool l1t::CaloCondition::evaluateCondition(const int bxEval) const {
     // clear the m_combinationsInCond vector
     combinationsInCond().clear();
 
-
-
     ////// NEW Method
     if( nObjInCond==1 ){
 
       // clear the indices in the combination
-      objectsInComb.clear();
+      //objectsInComb.clear();
 
       for( int i=0; i<numberObjects; i++ ){
+
+       // clear the indices in the combination
+        objectsInComb.clear();
 
 	totalLoops++;
 	bool passCondition = checkObjectParameter(0, *(candVec->at(useBx,i)));
@@ -258,10 +252,11 @@ const bool l1t::CaloCondition::evaluateCondition(const int bxEval) const {
     }
     else if( nObjInCond==2 ){
 
-      // clear the indices in the combination
-      objectsInComb.clear();
-
       for( int i=0; i<numberObjects; i++ ){
+
+        // clear the indices in the combination
+        objectsInComb.clear();
+
 	bool passCondition0i = checkObjectParameter(0, *(candVec->at(useBx,i)));
 	bool passCondition1i = checkObjectParameter(1, *(candVec->at(useBx,i)));
 
@@ -331,10 +326,11 @@ const bool l1t::CaloCondition::evaluateCondition(const int bxEval) const {
     }
     else if( nObjInCond==3 ){
 
-      // clear the indices in the combination
-      objectsInComb.clear();
-
       for( int i=0; i<numberObjects; i++ ){
+
+        // clear the indices in the combination
+        objectsInComb.clear();
+
 	bool passCondition0i = checkObjectParameter(0, *(candVec->at(useBx,i)));
 	bool passCondition1i = checkObjectParameter(1, *(candVec->at(useBx,i)));
 	bool passCondition2i = checkObjectParameter(2, *(candVec->at(useBx,i)));
@@ -380,10 +376,12 @@ const bool l1t::CaloCondition::evaluateCondition(const int bxEval) const {
     } // end if condition has 3 objects
     else if( nObjInCond==4 ){
 
-      // clear the indices in the combination
-      objectsInComb.clear();
 
       for( int i=0; i<numberObjects; i++ ){
+
+        // clear the indices in the combination
+        objectsInComb.clear();
+
 	bool passCondition0i = checkObjectParameter(0, *(candVec->at(useBx,i)));
 	bool passCondition1i = checkObjectParameter(1, *(candVec->at(useBx,i)));
 	bool passCondition2i = checkObjectParameter(2, *(candVec->at(useBx,i)));
@@ -526,7 +524,7 @@ const bool l1t::CaloCondition::checkObjectParameter(const int iCondition, const 
       << "\n CaloTemplate: "
       << "\n\t condRelativeBx = " << m_gtCaloTemplate->condRelativeBx()
       << "\n ObjectParameter : "
-      << "\n\t etThreshold = " << objPar.etThreshold
+      << "\n\t etThreshold = " << objPar.etLowThreshold << " - " << objPar.etHighThreshold
       << "\n\t etaRange    = " << objPar.etaRange
       << "\n\t phiRange    = " << objPar.phiRange
       << "\n\t isolationLUT= " << objPar.isolationLUT
@@ -541,13 +539,13 @@ const bool l1t::CaloCondition::checkObjectParameter(const int iCondition, const 
 
 
     // check energy threshold
-    if ( !checkThreshold(objPar.etThreshold, cand.hwPt(), m_gtCaloTemplate->condGEq()) ) {
+    if ( !checkThreshold(objPar.etLowThreshold, objPar.etHighThreshold, cand.hwPt(), m_gtCaloTemplate->condGEq()) ) {
       LogDebug("l1t|Global") << "\t\t l1t::Candidate failed checkThreshold" << std::endl;
         return false;
     }
 
     // check eta
-    if( !checkRangeEta(cand.hwEta(), objPar.etaWindowLower, objPar.etaWindowUpper, objPar.etaWindowVetoLower, objPar.etaWindowVetoLower, 7) ){
+    if( !checkRangeEta(cand.hwEta(), objPar.etaWindow1Lower, objPar.etaWindow1Upper, objPar.etaWindow2Lower, objPar.etaWindow2Upper, 7) ){
       LogDebug("l1t|Global") << "\t\t l1t::Candidate failed checkRange(eta)" << std::endl;
       return false;
     }
@@ -557,7 +555,7 @@ const bool l1t::CaloCondition::checkObjectParameter(const int iCondition, const 
 //     }
 
     // check phi
-    if( !checkRangePhi(cand.hwPhi(), objPar.phiWindowLower, objPar.phiWindowUpper, objPar.phiWindowVetoLower, objPar.phiWindowVetoLower) ){
+    if( !checkRangePhi(cand.hwPhi(), objPar.phiWindow1Lower, objPar.phiWindow1Upper, objPar.phiWindow2Lower, objPar.phiWindow2Upper) ){
       LogDebug("l1t|Global") << "\t\t l1t::Candidate failed checkRange(phi)" << std::endl;
       return false;
     }

@@ -9,6 +9,7 @@ import re
 import Configuration.Applications
 from Configuration.Applications.ConfigBuilder import ConfigBuilder, defaultOptions
 import traceback
+from functools import reduce
 
 
 def checkOptions():
@@ -265,6 +266,9 @@ def OptionsFromItems(items):
         else :
             options.era="fastSim"
 
+    # options incompatible with fastsim
+    if options.fast and not options.scenario == "pp":
+        raise Exception("ERROR: the --option fast is only compatible with the default scenario (--scenario=pp)")
 
     return options
 

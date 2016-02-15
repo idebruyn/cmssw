@@ -7,9 +7,6 @@
 //
 #include "CondCore/CondDB/interface/ConnectionPool.h"
 //
-#include "CondCore/DBCommon/interface/DbConnection.h"
-#include "CondCore/DBCommon/interface/DbTransaction.h"
-#include "CondCore/DBCommon/interface/DbSession.h"
 #include "MyTestData.h"
 // #include "ArrayPayload.h"
 // #include "SimplePayload.h"
@@ -34,7 +31,7 @@ int doWrite( const std::string& connectionString ){
     std::cout <<"> Connecting for writing with db in "<<connectionString<<std::endl;
     ConnectionPool connPool;
     connPool.setMessageVerbosity( coral::Debug );
-    Session session = connPool.createSession( connectionString, true, cond::COND_DB );
+    Session session = connPool.createSession( connectionString, true );
     session.transaction().start( false );
 
     MyTestData d0( iVal0 );
@@ -111,7 +108,7 @@ int doRead( const std::string& connectionString ){
     std::cout <<"> Connecting for reading with db in "<<connectionString<<std::endl;
     ConnectionPool connPool;
     connPool.setMessageVerbosity( coral::Debug );
-    Session session = connPool.createSession( connectionString, true, cond::COND_DB );
+    Session session = connPool.createSession( connectionString, true );
     session.transaction().start( false );
 
     session.transaction().start();

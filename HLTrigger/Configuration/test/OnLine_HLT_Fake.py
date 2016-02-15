@@ -1,11 +1,11 @@
-# /dev/CMSSW_7_4_0/Fake/V17 (CMSSW_7_4_10_patch1)
+# /dev/CMSSW_8_0_0/Fake/V2 (CMSSW_8_0_0_pre5)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTFake" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_7_4_0/Fake/V17')
+  tableName = cms.string('/dev/CMSSW_8_0_0/Fake/V2')
 )
 
 process.streams = cms.PSet(  A = cms.vstring( 'InitialPD' ) )
@@ -14,9 +14,10 @@ process.datasets = cms.PSet(  InitialPD = cms.vstring( 'HLT_Physics_v1',
   'HLT_ZeroBias_v1' ) )
 
 process.GlobalTag = cms.ESSource( "PoolDBESSource",
+    snapshotTime = cms.string( "" ),
     globaltag = cms.string( "GR_H_V39" ),
     RefreshEachRun = cms.untracked.bool( True ),
-    RefreshOpenIOVs = cms.untracked.bool( False ),
+    dbFormat = cms.untracked.int32( 0 ),
     toGet = cms.VPSet( 
     ),
     DBParameters = cms.PSet( 
@@ -33,11 +34,21 @@ process.GlobalTag = cms.ESSource( "PoolDBESSource",
     RefreshAlways = cms.untracked.bool( False ),
     connect = cms.string( "frontier://(proxyurl=http://localhost:3128)(serverurl=http://localhost:8000/FrontierOnProd)(serverurl=http://localhost:8000/FrontierOnProd)(retrieve-ziplevel=0)/CMS_CONDITIONS" ),
     ReconnectEachRun = cms.untracked.bool( True ),
-    BlobStreamerName = cms.untracked.string( "TBufferBlobStreamingService" ),
+    RefreshOpenIOVs = cms.untracked.bool( False ),
     DumpStat = cms.untracked.bool( False )
 )
 
 process.CastorDbProducer = cms.ESProducer( "CastorDbProducer",
+  appendToDataLabel = cms.string( "" )
+)
+process.HcalTopologyIdealEP = cms.ESProducer( "HcalTopologyIdealEP",
+  Exclude = cms.untracked.string( "" ),
+  appendToDataLabel = cms.string( "" )
+)
+process.hcalDDDRecConstants = cms.ESProducer( "HcalDDDRecConstantsESModule",
+  appendToDataLabel = cms.string( "" )
+)
+process.hcalDDDSimConstants = cms.ESProducer( "HcalDDDSimConstantsESModule",
   appendToDataLabel = cms.string( "" )
 )
 
@@ -433,5 +444,8 @@ _customInfo['globalTag' ]= "auto:run1_hlt_Fake"
 _customInfo['inputFile' ]=  ['file:RelVal_Raw_Fake_DATA.root']
 _customInfo['realData'  ]=  True
 from HLTrigger.Configuration.customizeHLTforALL import customizeHLTforAll
-process = customizeHLTforAll(process,_customInfo)
+process = customizeHLTforAll(process,"Fake",_customInfo)
+
+from HLTrigger.Configuration.customizeHLTforCMSSW import customizeHLTforCMSSW
+process = customizeHLTforCMSSW(process,"Fake")
 

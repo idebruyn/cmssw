@@ -40,7 +40,6 @@ namespace edm {
           luminosityBlockPrincipal_(),
           provRetrieverPtr_(new ProductProvenanceRetriever(streamIndex)),
           unscheduledHandler_(),
-          moduleLabelsRunning_(),
           eventSelectionIDs_(),
           branchIDListHelper_(branchIDListHelper),
           thinnedAssociationsHelper_(thinnedAssociationsHelper),
@@ -54,10 +53,9 @@ namespace edm {
   EventPrincipal::clearEventPrincipal() {
     clearPrincipal();
     aux_ = EventAuxiliary();
-    luminosityBlockPrincipal_.reset();
+    luminosityBlockPrincipal_ = nullptr; // propagate_const<T> has no reset() function
     provRetrieverPtr_->reset();
     unscheduledHandler_.reset();
-    moduleLabelsRunning_.clear();
     branchListIndexToProcessIndex_.clear();
   }
 
@@ -66,10 +64,10 @@ namespace edm {
         ProcessHistoryRegistry const& processHistoryRegistry,
         EventSelectionIDVector&& eventSelectionIDs,
         BranchListIndexes&& branchListIndexes,
-        ProductProvenanceRetriever& provRetriever,
+        ProductProvenanceRetriever const& provRetriever,
         DelayedReader* reader) {
     eventSelectionIDs_ = eventSelectionIDs;
-    provRetrieverPtr_->deepSwap(provRetriever);
+    provRetrieverPtr_->deepCopy(provRetriever);
     branchListIndexes_ = branchListIndexes;
     if(branchIDListHelper_->hasProducedProducts()) {
       // Add index into BranchIDListRegistry for products produced this process
@@ -119,7 +117,7 @@ namespace edm {
     }
 
     // Fill in the product ID's in the product holders.
-    for(auto const& prod : *this) {
+    for(auto& prod : *this) {
       if (prod->singleProduct()) {
         // If an alias is in the same process as the original then isAlias will be true.
         //  Under that condition, we want the ProductID to be the same as the original.
@@ -155,7 +153,7 @@ namespace edm {
   EventPrincipal::put(
         BranchDescription const& bd,
         std::unique_ptr<WrapperBase> edp,
-        ProductProvenance const& productProvenance) {
+        ProductProvenance const& productProvenance) const {
 
     // assert commented out for DaqSource.  When DaqSource no longer uses put(), the assert can be restored.
     //assert(produced());
@@ -165,7 +163,7 @@ namespace edm {
         << "\n";
     }
     productProvenanceRetrieverPtr()->insertIntoSet(productProvenance);
-    ProductHolderBase* phb = getExistingProduct(bd.branchID());
+    auto phb = getExistingProduct(bd.branchID());
     assert(phb);
     checkUniquenessAndType(edp.get(), phb);
     // ProductHolder assumes ownership
@@ -176,11 +174,11 @@ namespace edm {
   EventPrincipal::putOnRead(
         BranchDescription const& bd,
         std::unique_ptr<WrapperBase> edp,
-        ProductProvenance const& productProvenance) {
+        ProductProvenance const& productProvenance) const {
 
     assert(!bd.produced());
     productProvenanceRetrieverPtr()->insertIntoSet(productProvenance);
-    ProductHolderBase* phb = getExistingProduct(bd.branchID());
+    auto phb = getExistingProduct(bd.branchID());
     assert(phb);
     checkUniquenessAndType(edp.get(), phb);
     // ProductHolder assumes ownership
@@ -291,7 +289,7 @@ namespace edm {
       }));
     }
     ProductHolderBase::ResolveStatus status;
-    phb->resolveProduct(status,false,nullptr,nullptr);
+    phb->resolveProduct(status,*this,false,nullptr,nullptr);
 
     return BasicHandle(phb->productData());
   }
@@ -418,7 +416,7 @@ namespace edm {
     unscheduledHandler_ = iHandler;
   }
 
-  std::shared_ptr<UnscheduledHandler>
+  std::shared_ptr<const UnscheduledHandler>
   EventPrincipal::unscheduledHandler() const {
      return unscheduledHandler_;
   }
@@ -444,11 +442,11 @@ namespace edm {
         << "This should never happen. Contact a Framework developer";
     }
     ProductHolderBase::ResolveStatus status;
-    ProductData const* productData = phb->resolveProduct(status,false,nullptr,nullptr);
+    ProductData const* productData = phb->resolveProduct(status,*this,false,nullptr,nullptr);
     if (productData == nullptr) {
       return nullptr;
     }
-    WrapperBase const* product = productData->wrapper_.get();
+    WrapperBase const* product = productData->wrapper();
     if(!(typeid(edm::ThinnedAssociation) == product->dynamicTypeInfo())) {
       throw Exception(errors::LogicError)
         << "EventPrincipal::getThinnedProduct, product has wrong type, not a ThinnedAssociation.\n";
@@ -461,28 +459,6 @@ namespace edm {
   EventPrincipal::unscheduledFill(std::string const& moduleLabel,
                                   SharedResourcesAcquirer* sra,
                                   ModuleCallingContext const* mcc) const {
-
-    // If it is a module already currently running in unscheduled
-    // mode, then there is a circular dependency related to which
-    // EDProducts modules require and produce.  There is no safe way
-    // to recover from this.  Here we check for this problem and throw
-    // an exception.
-    std::vector<std::string>::const_iterator i =
-      find_in_all(moduleLabelsRunning_, moduleLabel);
-
-    if(i != moduleLabelsRunning_.end()) {
-      throw Exception(errors::LogicError)
-        << "Hit circular dependency while trying to run an unscheduled module.\n"
-        << "The last module on the stack shown above requested data from the\n"
-        << "module with label: '" << moduleLabel << "'.\n"
-        << "This is illegal because this module is already running (it is in the\n"
-        << "stack shown above, it might or might not be asking for data from itself).\n"
-        << "More information related to resolving circular dependences can be found here:\n"
-        << "https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideUnscheduledExecution#Circular_Dependence_Errors.";
-    }
-
-    UnscheduledSentry sentry(&moduleLabelsRunning_, moduleLabel);
-
     if(unscheduledHandler_) {
       if(mcc == nullptr) {
         throw Exception(errors::LogicError)
@@ -495,7 +471,7 @@ namespace edm {
         postModuleDelayedGetSignal_.emit(*(mcc->getStreamContext()),*mcc);
       });
       auto handlerCall = [this,&moduleLabel,&mcc]() {
-        unscheduledHandler_->tryToFill(moduleLabel, *const_cast<EventPrincipal*>(this), mcc);
+        unscheduledHandler_->tryToFill(moduleLabel, *this, mcc);
       };
       if (sra) {
         sra->temporaryUnlock(handlerCall);

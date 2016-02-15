@@ -160,6 +160,10 @@ hltHiggsPostHtaunu = hltHiggsPostProcessor.clone()
 hltHiggsPostHtaunu.subDirs = ['HLT/Higgs/Htaunu']
 hltHiggsPostHtaunu.efficiencyProfile = efficiency_strings
 
+hltHiggsPostVBFHToInv = hltHiggsPostProcessor.clone()
+hltHiggsPostVBFHToInv.subDirs = ['HLT/Higgs/VBFHToInv']
+hltHiggsPostVBFHToInv.efficiencyProfile = efficiency_strings
+
 
 efficiency_strings_TTHbbej = []
 #add the summary plots
@@ -341,9 +345,6 @@ hltHiggsPostMSSMHbb = hltHiggsPostProcessor.clone()
 hltHiggsPostMSSMHbb.subDirs = ['HLT/Higgs/MSSMHbb']
 hltHiggsPostMSSMHbb.efficiencyProfile = efficiency_strings
 
-
-
-
 hltHiggsPostProcessors = cms.Sequence(
         hltHiggsPostHWW+
         hltHiggsPostHZZ+
@@ -361,8 +362,8 @@ hltHiggsPostProcessors = cms.Sequence(
         hltHiggsPostHiggsDalitz+
         hltHiggsPostX4b+
         hltHiggsPostWHToENuBB+
-        hltHiggsPostMSSMHbb
-
+        hltHiggsPostMSSMHbb+
+        hltHiggsPostVBFHToInv
 )
 
 
