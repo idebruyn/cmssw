@@ -23,10 +23,11 @@
 
 #include "L1Trigger/TrackTrigger/interface/classNameFinder.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTClusterAssociationMap.h"
-#include "Geometry/Records/interface/StackedTrackerGeometryRecord.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerGeometry.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerDetUnit.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
+
 
 #include <memory>
 #include <map>
@@ -50,7 +51,7 @@ class TTClusterAssociator : public edm::EDProducer
     edm::Handle< edm::SimTrackContainer >                  theSimTrackHandle;
     edm::InputTag                                          simTrackInputTag;
     std::vector< edm::InputTag >                           TTClustersInputTags;
-    const StackedTrackerGeometry                           *theStackedTrackers;
+    const TrackerGeometry                                  *theTracker;
     //unsigned int                                           ADCThreshold;
 
     /// Mandatory methods
@@ -88,9 +89,9 @@ template< typename T >
 void TTClusterAssociator< T >::beginRun( const edm::Run& run, const edm::EventSetup& iSetup )
 {
   /// Get the geometry
-  edm::ESHandle< StackedTrackerGeometry > StackedTrackerGeomHandle;
-  iSetup.get< StackedTrackerGeometryRecord >().get( StackedTrackerGeomHandle );
-  theStackedTrackers = StackedTrackerGeomHandle.product();
+  edm::ESHandle< TrackerGeometry > TrackerGeomHandle;
+  iSetup.get< TrackerDigiGeometryRecord >().get( TrackerGeomHandle );
+  theTracker = TrackerGeomHandle.product();
 
   /// Print some information when loaded
   std::cout << std::endl;

@@ -26,7 +26,6 @@
 #include "L1Trigger/TrackTrigger/interface/classNameFinder.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTClusterAssociationMap.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTStubAssociationMap.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerDetUnit.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 
 #include <memory>
