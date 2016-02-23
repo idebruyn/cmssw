@@ -37,9 +37,19 @@
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 #include "DataFormats/L1TrackTrigger/interface/TTCluster.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerGeometry.h"
-#include "Geometry/Records/interface/StackedTrackerGeometryRecord.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
+
+/// Remove StacXXXkedTrackerGeometry
+//#include "Geometry/TrackerGeometryBuilder/interface/StacXXXkedTrackerGeometry.h"
+//#include "Geometry/Records/interface/StacXXXkedTrackerGeometryRecord.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
+#include "Geometry/CommonDetUnit/interface/GeomDetType.h"
+#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
 
 //
 // constructors and destructor
@@ -69,10 +79,21 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
   iEvent.getByLabel( tagTTClusters_, PixelDigiTTClusterHandle );
   
   /// Geometry
-  edm::ESHandle< StackedTrackerGeometry > StackedGeometryHandle;
-  const StackedTrackerGeometry* theStackedGeometry;
-  iSetup.get< StackedTrackerGeometryRecord >().get(StackedGeometryHandle);
-  theStackedGeometry = StackedGeometryHandle.product();
+//   edm::ESHandle< StacXXXkedTrackerGeometry > StacXXXkedGeometryHandle;
+//   const StacXXXkedTrackerGeometry* theStacXXXkedGeometry;
+//   iSetup.get< StacXXXkedTrackerGeometryRecord >().get(StacXXXkedGeometryHandle);
+//   theStacXXXkedGeometry = StacXXXkedGeometryHandle.product();
+  
+  edm::ESHandle<TrackerTopology> tTopoHandle;
+  const TrackerTopology* tTopo;
+  iSetup.get< IdealGeometryRecord >().get(tTopoHandle);
+  tTopo = tTopoHandle.product();
+  
+  edm::ESHandle< TrackerGeometry > tGeometryHandle;
+  const TrackerGeometry* theTrackerGeometry;
+  iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
+  theTrackerGeometry = tGeometryHandle.product();
+  
   
   /// Loop over the input Clusters
   typename edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > >::const_iterator inputIter;
@@ -83,12 +104,43 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
   {
     for(contentIter = inputIter->begin(); contentIter != inputIter->end(); ++contentIter)
     {
-      edm::Ref< edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > >, TTCluster< Ref_PixelDigi_ > > tempCluRef = edmNew::makeRefTo( PixelDigiTTClusterHandle, contentIter );
-      StackedTrackerDetId detIdClu( tempCluRef->getDetId() );
+    
+    edm::Ref< edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > >, TTCluster< Ref_PixelDigi_ > > tempCluRef = edmNew::makeRefTo( PixelDigiTTClusterHandle, contentIter );
+    DetId detIdClu = theTrackerGeometry->idToDet( tempCluRef->getDetId() )->geographicalId();
+    
+    //for (TrackerGeometry::DetContainer::const_iterator gd = theTrackerGeometry->dets().begin(); gd != theTrackerGeometry->dets().end(); gd++)
+    //{
+      //DetId detIdClu = (*gd)->geographicalId();
+      
+      bool isBarrel = false, isEndcap = false;
+      //unsigned int memberClu = -1;
+      if ( DetId(detIdClu).subdetId() == static_cast<int>(GeometricDet::OTPhase2Barrel) )
+      {
+        isBarrel = true;
+        //memberClu = 0;
+      }
+      else if ( DetId(detIdClu).subdetId() == static_cast<int>(GeometricDet::OTPhase2EndCap) )
+      {
+        isEndcap = true;
+        //memberClu = 1;
+      }
+      //else std::cerr << "DQM::OuterTrackerMonitorCluster: DetId does not belong to Phase 2 Barrel or endcap..." << std::endl;
+      
+      // Replacement of memberClu?
+      bool isLowerDet = tTopo->isLower(detIdClu);
+      bool isUpperDet = tTopo->isUpper(detIdClu);
+      //const GeomDetUnit* detInner = theTrackerGeometry->idToDetUnit( tTopo->Lower(detIdClu) ); // not used atm
+      //const GeomDetUnit* detOuter = theTrackerGeometry->idToDetUnit( tTopo->Upper(detIdClu) );
+      
+      
+      /// REPLACE !!!
+//      StacXXXkedTrackerDetId detIdClu( tempCluRef->getDetId() );
       unsigned int memberClu = tempCluRef->getStackMember();
       unsigned int widClu = tempCluRef->findWidth();
       
-      GlobalPoint posClu  = theStackedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
+      
+//      GlobalPoint posClu  = theStacXXXkedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
+      GlobalVector posClu =  GlobalVector((theTrackerGeometry->idToDet(detIdClu))->position().basicVector());
       
       double eta = posClu.eta();
       
@@ -97,43 +149,57 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
       
       Cluster_RZ->Fill( posClu.z(), posClu.perp() );
       
-      if ( detIdClu.isBarrel() )
+      if (isBarrel)
       {
         
-        if (memberClu == 0) Cluster_IMem_Barrel->Fill(detIdClu.iLayer());
-        else Cluster_OMem_Barrel->Fill(detIdClu.iLayer());
+        //if (memberClu == 0) Cluster_IMem_Barrel->Fill(detIdClu.iLayer());
+        //else Cluster_OMem_Barrel->Fill(detIdClu.iLayer());
+        
+        if ( isLowerDet ) Cluster_IMem_Barrel->Fill(tTopo->layer(detIdClu));
+        else if ( isUpperDet ) Cluster_OMem_Barrel->Fill(tTopo->layer(detIdClu));
         
         Cluster_Barrel_XY->Fill( posClu.x(), posClu.y() );
         Cluster_Barrel_XY_Zoom->Fill( posClu.x(), posClu.y() );
         
       }	// end if isBarrel()
-      else if (detIdClu.isEndcap())
+      else if (isEndcap)
       {
         
-        if (memberClu == 0)
+//         if (memberClu == 0)
+//         {
+//           Cluster_IMem_Endcap_Disc->Fill(detIdClu.iDisk());
+//           Cluster_IMem_Endcap_Ring->Fill(detIdClu.iRing());
+//         }
+//         else
+//         {
+//           Cluster_OMem_Endcap_Disc->Fill(detIdClu.iDisk());
+//           Cluster_OMem_Endcap_Ring->Fill(detIdClu.iRing());
+//          }
+        
+        if ( isLowerDet )
         {
-          Cluster_IMem_Endcap_Disc->Fill(detIdClu.iDisk());
-          Cluster_IMem_Endcap_Ring->Fill(detIdClu.iRing());
+          Cluster_IMem_Endcap_Disc->Fill(tTopo->layer(detIdClu)); // returns wheel
+          //Cluster_IMem_Endcap_Ring->Fill(detInner.iRing());
         }
-        else
+        else if ( isUpperDet )
         {
-          Cluster_OMem_Endcap_Disc->Fill(detIdClu.iDisk());
-          Cluster_OMem_Endcap_Ring->Fill(detIdClu.iRing());
+          Cluster_OMem_Endcap_Disc->Fill(tTopo->layer(detIdClu)); // returns wheel
+          //Cluster_OMem_Endcap_Ring->Fill(detOuter.iRing());
         }
         
         if ( posClu.z() > 0 )
         {
           Cluster_Endcap_Fw_XY->Fill( posClu.x(), posClu.y() );
           Cluster_Endcap_Fw_RZ_Zoom->Fill( posClu.z(), posClu.perp() );
-          if (memberClu == 0) Cluster_IMem_Endcap_Ring_Fw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
-          else Cluster_OMem_Endcap_Ring_Fw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
+          //if (memberClu == 0) Cluster_IMem_Endcap_Ring_Fw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
+          //else Cluster_OMem_Endcap_Ring_Fw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
         }
         else
         {
           Cluster_Endcap_Bw_XY->Fill( posClu.x(), posClu.y() );
           Cluster_Endcap_Bw_RZ_Zoom->Fill( posClu.z(), posClu.perp() );
-          if (memberClu == 0) Cluster_IMem_Endcap_Ring_Bw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
-          else Cluster_OMem_Endcap_Ring_Bw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
+          //if (memberClu == 0) Cluster_IMem_Endcap_Ring_Bw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
+          //else Cluster_OMem_Endcap_Ring_Bw[detIdClu.iDisk()-1]->Fill(detIdClu.iRing());
         }
         
       } // end if isEndcap()
