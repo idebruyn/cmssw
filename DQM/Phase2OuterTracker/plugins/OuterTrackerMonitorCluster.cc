@@ -74,9 +74,9 @@ OuterTrackerMonitorCluster::~OuterTrackerMonitorCluster()
 // ------------ method called for each event  ------------
 void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-	/// Track Trigger Clusters
-	edm::Handle< edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > > > PixelDigiTTClusterHandle;
-  iEvent.getByLabel( tagTTClusters_, PixelDigiTTClusterHandle );
+  /// Track Trigger Clusters
+  edm::Handle< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTClusterHandle;
+  iEvent.getByLabel( tagTTClusters_, Phase2TrackerDigiTTClusterHandle );
   
   /// Geometry
 //   edm::ESHandle< StacXXXkedTrackerGeometry > StacXXXkedGeometryHandle;
@@ -96,33 +96,30 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
   
   
   /// Loop over the input Clusters
-  typename edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > >::const_iterator inputIter;
-  typename edmNew::DetSet< TTCluster< Ref_PixelDigi_ > >::const_iterator contentIter;
-  for ( inputIter = PixelDigiTTClusterHandle->begin();
-       inputIter != PixelDigiTTClusterHandle->end();
+  typename edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > >::const_iterator inputIter;
+  typename edmNew::DetSet< TTCluster< Ref_Phase2TrackerDigi_ > >::const_iterator contentIter;
+  for ( inputIter = Phase2TrackerDigiTTClusterHandle->begin();
+       inputIter != Phase2TrackerDigiTTClusterHandle->end();
        ++inputIter )
   {
     for(contentIter = inputIter->begin(); contentIter != inputIter->end(); ++contentIter)
     {
     
-    edm::Ref< edmNew::DetSetVector< TTCluster< Ref_PixelDigi_ > >, TTCluster< Ref_PixelDigi_ > > tempCluRef = edmNew::makeRefTo( PixelDigiTTClusterHandle, contentIter );
-    DetId detIdClu = theTrackerGeometry->idToDet( tempCluRef->getDetId() )->geographicalId();
-    
     //for (TrackerGeometry::DetContainer::const_iterator gd = theTrackerGeometry->dets().begin(); gd != theTrackerGeometry->dets().end(); gd++)
     //{
       //DetId detIdClu = (*gd)->geographicalId();
       
+      edm::Ref< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > >, TTCluster< Ref_Phase2TrackerDigi_ > > tempCluRef = edmNew::makeRefTo( Phase2TrackerDigiTTClusterHandle, contentIter );
+      DetId detIdClu = theTrackerGeometry->idToDet( tempCluRef->getDetId() )->geographicalId();
+      
       bool isBarrel = false, isEndcap = false;
-      //unsigned int memberClu = -1;
       if ( DetId(detIdClu).subdetId() == static_cast<int>(GeometricDet::OTPhase2Barrel) )
       {
         isBarrel = true;
-        //memberClu = 0;
       }
       else if ( DetId(detIdClu).subdetId() == static_cast<int>(GeometricDet::OTPhase2EndCap) )
       {
         isEndcap = true;
-        //memberClu = 1;
       }
       //else std::cerr << "DQM::OuterTrackerMonitorCluster: DetId does not belong to Phase 2 Barrel or endcap..." << std::endl;
       
