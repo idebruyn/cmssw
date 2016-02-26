@@ -743,10 +743,10 @@ def cust_2023TTI_forHLT(process):
     return process
 
 def cust_removeTTI(process):
-    """ Removes L1TrackTrigger_step from the schedule for geometries that
-    don't yet work with it. """
-    if hasattr(process,'L1TrackTrigger_step'):
-        process.schedule.remove( process.L1TrackTrigger_step )
+#    """ Removes L1TrackTrigger_step from the schedule for geometries that
+#    don't yet work with it. """
+#    if hasattr(process,'L1TrackTrigger_step'):
+#        process.schedule.remove( process.L1TrackTrigger_step )
     return process
 
 def noCrossing(process):
