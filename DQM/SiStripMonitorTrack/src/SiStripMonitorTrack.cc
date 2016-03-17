@@ -1090,10 +1090,12 @@ bool SiStripMonitorTrack::clusterInfos(SiStripClusterInfo* cluster, const uint32
   if (TkHistoMap_On_ && (flag == OnTrack)) {
       uint32_t adet=cluster->detId();
       tkhisto_ClChPerCMfromTrack->fill(adet,dQdx_fromTrack);
+      tkhisto_ClChPerCMfromTrack->fillPoly(adet,dQdx_fromTrack,pu);
   }
   if (clchCMoriginTkHmap_On_ && (flag == OffTrack)){
     uint32_t adet=cluster->detId();
     tkhisto_ClChPerCMfromOrigin->fill(adet,dQdx_fromOrigin);
+    tkhisto_ClChPerCMfromOrigin->fillPoly(adet,dQdx_fromOrigin,pu);
   }
 
   if(flag==OnTrack){

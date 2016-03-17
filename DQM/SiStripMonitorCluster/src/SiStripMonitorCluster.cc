@@ -612,7 +612,8 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 	}
 	if(clustertkhistomapon) tkmapcluster->fill(detid,0.);
 	if(clustertkhistomapon) tkmapcluster->fillPoly(detid,0.,pu);
-	if(clusterchtkhistomapon) tkmapclusterch->fill(detid,0.);
+  if(clusterchtkhistomapon) tkmapclusterch->fill(detid,0.);
+	if(clusterchtkhistomapon) tkmapclusterch->fillPoly(detid,0.,pu);
 
 	if (found_layer_me && layerswitchnumclusterprofon) layer_single.LayerNumberOfClusterProfile->Fill(iDet, 0.0);
 	continue; // no clusters for this detid => jump to next step of loop
@@ -654,7 +655,8 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 	// add nr of strips of this cluster to total nr. of clusterized strips
 	total_clusterized_strips = total_clusterized_strips + cluster_width;
 
-	if(clusterchtkhistomapon) tkmapclusterch->fill(detid,static_cast<float>(clusterIter->charge()));
+  if(clusterchtkhistomapon) tkmapclusterch->fill(detid,static_cast<float>(clusterIter->charge()));
+	if(clusterchtkhistomapon) tkmapclusterch->fillPoly(detid,static_cast<float>(clusterIter->charge()),pu);
 
 	// cluster signal and noise from the amplitudes
 	float cluster_signal = 0.0;
