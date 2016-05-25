@@ -221,38 +221,19 @@ void TkHistoMap::fill(uint32_t& detid,float value){
 }
 
 void TkHistoMap::fillPoly(uint32_t detid, float value, PolyUtil* pu){
-  std::cout<<"Getting Layer Number"<<std::endl;
   int16_t layerNum=tkdetmap_->FindLayer(detid , cached_detid , cached_layer , cached_XYbin);
-  std::cout<<"Initializing Value Class: "<<std::endl; 
   ValueClass v ; 
-   v = valueMap[detid];
-   v.setNumber(v.getNumber()+1);
-   v.setValue(v.getValue()+value);
-    if (v.getBinNumber()==0){
-	std::cout<<"Calling Fill: "<<std::endl;
-	Int_t binNumber= tkHistoMapPoly_[layerNum]->getTH2Poly()->Fill(TString::Format("%u",detid),v.getValue()/v.getNumber());
-	v.setBinNumber(binNumber);
-      }
-      else{
-	std::cout<<"Calling set Bin Content: "<<std::endl;
-	tkHistoMapPoly_[layerNum]->getTH2Poly()->SetBinContent(v.getBinNumber(),v.getValue()/v.getNumber());
-      }
-    std::cout<<"Storing Value back in MAP: "<<std::endl;
-      valueMap[detid]=v;
-  /* std::cout<<"Getting Selected Det Ids: "<<std::endl;
-  std::vector<uint32_t>* selectedDetIds =pu->getSelectedDetIds();
-  for(int layerVar=0;layerVar<35;layerVar++){
-    std::cout<<"Looping Over Layers: "<<std::endl;
-    std::vector<uint32_t>::iterator it = selectedDetIds[layerVar].begin();
-   
-    std:: cout<<"Iterating over selected Det Ids: "<<std::endl;
-    for(;it!=selectedDetIds[layerVar].end();it++){
-     
-            
-     
-    }
-    std::cout<<"End of iteration: "<<std::endl;
-    }*/
+  v = valueMap[detid];
+  v.setNumber(v.getNumber()+1);
+  v.setValue(v.getValue()+value);
+  if (v.getBinNumber()==0){
+    Int_t binNumber= tkHistoMapPoly_[layerNum]->getTH2Poly()->Fill(TString::Format("%u",detid),v.getValue()/v.getNumber());
+    v.setBinNumber(binNumber);
+  }
+  else{
+    tkHistoMapPoly_[layerNum]->getTH2Poly()->SetBinContent(v.getBinNumber(),v.getValue()/v.getNumber());
+  }
+  valueMap[detid]=v;
 }
 void TkHistoMap::setBinContent(uint32_t& detid,float value){
   int16_t layer=tkdetmap_->FindLayer(detid , cached_detid , cached_layer , cached_XYbin);
@@ -281,24 +262,19 @@ void TkHistoMap::add(uint32_t& detid,float value){
 }
  
 void TkHistoMap::addPoly(uint32_t& detid,float value, PolyUtil* pu){;
-  std::cout<<"Getting Layer Number"<<std::endl;
   int16_t layerNum=tkdetmap_->FindLayer(detid , cached_detid , cached_layer , cached_XYbin);
-  std::cout<<"Initializing Value Class: "<<std::endl; 
   ValueClass v ; 
-   v = valueMap[detid];
+  v = valueMap[detid];
 //    v.setNumber(v.getNumber()+1);
-   v.setValue(v.getValue()+value);
-    if (v.getBinNumber()==0){
-  std::cout<<"Calling Fill: "<<std::endl;
-  Int_t binNumber= tkHistoMapPoly_[layerNum]->getTH2Poly()->Fill(TString::Format("%u",detid),v.getValue());
-  v.setBinNumber(binNumber);
-      }
-      else{
-  std::cout<<"Calling set Bin Content: "<<std::endl;
-  tkHistoMapPoly_[layerNum]->getTH2Poly()->SetBinContent(v.getBinNumber(),v.getValue());
-      }
-    std::cout<<"Storing Value back in MAP: "<<std::endl;
-      valueMap[detid]=v;
+  v.setValue(v.getValue()+value);
+  if (v.getBinNumber()==0){
+    Int_t binNumber= tkHistoMapPoly_[layerNum]->getTH2Poly()->Fill(TString::Format("%u",detid),v.getValue());
+    v.setBinNumber(binNumber);
+  }
+  else{
+    tkHistoMapPoly_[layerNum]->getTH2Poly()->SetBinContent(v.getBinNumber(),v.getValue());
+  }
+  valueMap[detid]=v;
 }
 
 float TkHistoMap::getValue(uint32_t& detid){
