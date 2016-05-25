@@ -670,12 +670,15 @@ void SiStripMonitorTrack::trajectoryStudy(const edm::Ref<std::vector<Trajectory>
     if (TkHistoMap_On_ && (numTracks > 0)) {
       uint32_t thedetid=ttrh->rawId();
       if ( thedetid > 369120277-1 ) {
-        if ( (ttrh->getType()==1) )
+        if ( (ttrh->getType()==1) ){
           tkhisto_NumMissingHits->add(thedetid,static_cast<float>(1./numTracks));
-        if ( (ttrh->getType()==2) )
+          tkhisto_NumMissingHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
+        if ( (ttrh->getType()==2) ){
           tkhisto_NumberInactiveHits->add(thedetid,static_cast<float>(1./numTracks));
-        if ( (ttrh->getType()==0) )
+          tkhisto_NumberInactiveHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
+        if ( (ttrh->getType()==0) ){
           tkhisto_NumberValidHits->add(thedetid,static_cast<float>(1./numTracks));
+          tkhisto_NumberValidHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
       }
     }
 
@@ -858,12 +861,15 @@ void SiStripMonitorTrack::trackStudyFromTrack(edm::Handle<reco::TrackCollection 
       if (TkHistoMap_On_ && (numTracks > 0)) {
         uint32_t thedetid=(*hit)->rawId();
         if ( thedetid > 369120277-1 ) {
-          if ( ((*hit)->getType()==1) )
+          if ( ((*hit)->getType()==1) ){
             tkhisto_NumMissingHits->add(thedetid,static_cast<float>(1./numTracks));
-          if ( ((*hit)->getType()==2) )
+            tkhisto_NumMissingHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
+          if ( ((*hit)->getType()==2) ){
             tkhisto_NumberInactiveHits->add(thedetid,static_cast<float>(1./numTracks));
-          if ( ((*hit)->getType()==0) )
+            tkhisto_NumberInactiveHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
+          if ( ((*hit)->getType()==0) ){
             tkhisto_NumberValidHits->add(thedetid,static_cast<float>(1./numTracks));
+            tkhisto_NumberValidHits->addPoly(thedetid,static_cast<float>(1./numTracks), pu);}
         }
       }
 
@@ -1134,6 +1140,7 @@ bool SiStripMonitorTrack::clusterInfos(SiStripClusterInfo* cluster, const uint32
     if (TkHistoMap_On_) {
       uint32_t adet=cluster->detId();
       tkhisto_NumOnTrack->add(adet,1.);
+      tkhisto_NumOnTrack->addPoly(adet,1., pu);
       if(noise > 0.0){
         tkhisto_StoNCorrOnTrack->fill(adet,cluster->signalOverNoise()*cosRZ);
         tkhisto_StoNCorrOnTrack->fillPoly(adet,cluster->signalOverNoise()*cosRZ, pu);
@@ -1180,6 +1187,7 @@ bool SiStripMonitorTrack::clusterInfos(SiStripClusterInfo* cluster, const uint32
       if (TkHistoMap_On_) {
         uint32_t adet=cluster->detId();
         tkhisto_NumOffTrack->add(adet,1.);
+        tkhisto_NumOffTrack->addPoly(adet,1., pu);
         if(charge > 250){
 	  LogDebug("SiStripMonitorTrack") << "Module firing " << detid << " in Event " << eventNb << std::endl;
         }

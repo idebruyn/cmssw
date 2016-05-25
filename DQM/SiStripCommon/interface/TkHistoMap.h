@@ -76,6 +76,7 @@ class TkHistoMap{
   void fillPoly(uint32_t detid , float value,PolyUtil* pu );
   void setBinContent(uint32_t& detid,float value);
   void add(uint32_t& detid,float value);
+  void addPoly(uint32_t& detid,float value, PolyUtil* pu);
 
   void dumpInTkMap(TrackerMap* tkmap, bool dumpEntries=false); //dumpEntries==true? (dump entries) : (dump mean values)
   void save(std::string filename);
