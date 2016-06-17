@@ -37,10 +37,7 @@
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTrack.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerGeometry.h"
-#include "Geometry/Records/interface/StackedTrackerGeometryRecord.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
-
 
 
 //
@@ -75,7 +72,7 @@ void OuterTrackerMonitorTrack::analyze(const edm::Event& iEvent, const edm::Even
   unsigned int numLQTracks = 0;
   unsigned int numTracks = 0; 
   
-  // Go on only if there are TTTracks from Phase2TrackerDigis
+  /// Go on only if there are TTTracks from Phase2TrackerDigis
   if ( Phase2TrackerDigiTTTrackHandle->size() > 0 )
   {
     /// Loop over TTTracks

@@ -10,6 +10,7 @@ OuterTrackerMCTruth = cms.EDAnalyzer('OuterTrackerMCTruth',
     TTTracks         = cms.InputTag("TTTracksFromPhase2TrackerDigis", "Level1TTTracks"),
     TTTrackMCTruth   = cms.InputTag("TTTrackAssociatorFromPhase2TrackerDigis", "Level1TTTracks"),    
     HQDelim          = cms.int32(4),
+    useTracking      = cms.untracked.bool(False),
     verbosePlots     = cms.untracked.bool(False),
 
 

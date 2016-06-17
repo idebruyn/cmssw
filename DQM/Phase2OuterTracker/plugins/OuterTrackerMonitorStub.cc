@@ -51,9 +51,14 @@
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 #include "DataFormats/L1TrackTrigger/interface/TTStub.h"
 #include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerGeometry.h"
-#include "Geometry/Records/interface/StackedTrackerGeometryRecord.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
+
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
+
 
 //
 // constructors and destructor
@@ -84,88 +89,87 @@ OuterTrackerMonitorStub::~OuterTrackerMonitorStub()
 void
 OuterTrackerMonitorStub::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  //using namespace edm;
-  
-  /// Geometry handles etc
-  edm::ESHandle< TrackerGeometry > GeometryHandle;
-  edm::ESHandle< StackedTrackerGeometry > StackedGeometryHandle;
-  const StackedTrackerGeometry* theStackedGeometry;
-  StackedTrackerGeometry::StackContainerIterator StackedTrackerIterator;
-  
-  /// Geometry setup
-  /// Set pointers to Geometry
-  iSetup.get< TrackerDigiGeometryRecord >().get(GeometryHandle);
-  /// Set pointers to Stacked Modules
-  iSetup.get< StackedTrackerGeometryRecord >().get(StackedGeometryHandle);
-  theStackedGeometry = StackedGeometryHandle.product(); /// Note this is different from the "global" geometry
-   
   /// Track Trigger Stubs
   edm::Handle< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTStubHandle;
   iEvent.getByLabel( tagTTStubs_, Phase2TrackerDigiTTStubHandle );
   
+  /// Geometry
+  edm::ESHandle<TrackerTopology> tTopoHandle;
+  const TrackerTopology* tTopo;
+  iSetup.get< IdealGeometryRecord >().get(tTopoHandle);
+  tTopo = tTopoHandle.product();
   
-  //loop over input Stubs
-  typename edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > >::const_iterator otherInputIter;
-  typename edmNew::DetSet< TTStub< Ref_Phase2TrackerDigi_ > >::const_iterator otherContentIter;
-  for ( otherInputIter = Phase2TrackerDigiTTStubHandle->begin();otherInputIter != Phase2TrackerDigiTTStubHandle->end();++otherInputIter )
+  edm::ESHandle< TrackerGeometry > tGeometryHandle;
+  const TrackerGeometry* theTrackerGeometry;
+  iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
+  theTrackerGeometry = tGeometryHandle.product();
+  
+  
+  /// Loop over input Stubs
+  typename edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > >::const_iterator inputIter;
+  typename edmNew::DetSet< TTStub< Ref_Phase2TrackerDigi_ > >::const_iterator contentIter;
+  for ( inputIter = Phase2TrackerDigiTTStubHandle->begin();
+        inputIter != Phase2TrackerDigiTTStubHandle->end();
+        ++inputIter )
   {
-    for ( otherContentIter = otherInputIter->begin();otherContentIter != otherInputIter->end();++otherContentIter )
+    for ( contentIter = inputIter->begin(); contentIter != inputIter->end(); ++contentIter )
     {
-      //Make reference stub
-      edm::Ref< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > >, TTStub< Ref_Phase2TrackerDigi_ > > tempStubRef = edmNew::makeRefTo( Phase2TrackerDigiTTStubHandle, otherContentIter );
-
-      // Define position stub 
-      GlobalPoint posStub = theStackedGeometry->findGlobalPosition( &(*tempStubRef) );
-      double eta = posStub.eta();
-
+      /// Make reference stub
+      edm::Ref< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > >, TTStub< Ref_Phase2TrackerDigi_ > > tempStubRef = edmNew::makeRefTo( Phase2TrackerDigiTTStubHandle, contentIter );
+      
       // Get det ID (place of the stub)
-      StackedTrackerDetId detIdStub( tempStubRef->getDetId() );
-          
+      DetId detIdStub = theTrackerGeometry->idToDet( tempStubRef->getDetId() )->geographicalId();
+      
       // Get trigger displacement/offset
       double displStub = tempStubRef->getTriggerDisplacement();
       double offsetStub = tempStubRef->getTriggerOffset();
+      
+      // Define position stub 
+      GlobalVector posStub = GlobalVector((theTrackerGeometry->idToDet(detIdStub))->position().basicVector());
+      double eta = posStub.eta();
+
 
       Stub_RZ->Fill( posStub.z(), posStub.perp() );
       Stub_Eta->Fill(eta);
 
-      if ( detIdStub.isBarrel() ) //if the stub is in the barrel
+      if ( detIdStub.subdetId() == static_cast<int>(StripSubdetector::TOB) )  // Phase 2 Outer Tracker Barrel
       {
-        Stub_Barrel->Fill(detIdStub.iLayer() ); 
+        Stub_Barrel->Fill(tTopo->layer(detIdStub)); 
 
         Stub_Barrel_XY->Fill( posStub.x(), posStub.y() );
         Stub_Barrel_XY_Zoom->Fill( posStub.x(), posStub.y() );
 	     
-        Stub_Barrel_W->Fill(detIdStub.iLayer(), displStub - offsetStub);
-        Stub_Barrel_O->Fill(detIdStub.iLayer(), offsetStub);
+        Stub_Barrel_W->Fill(tTopo->layer(detIdStub), displStub - offsetStub);
+        Stub_Barrel_O->Fill(tTopo->layer(detIdStub), offsetStub);
       }
-      else if ( detIdStub.isEndcap() )
+      else if ( detIdStub.subdetId() == static_cast<int>(StripSubdetector::TID) )  // Phase 2 Outer Tracker Endcap
       {
-        int disk = detIdStub.iDisk();
-        int ring = detIdStub.iRing();
-        Stub_Endcap_Disc->Fill(disk);
+        int disc = tTopo->layer(detIdStub); // returns wheel
+        int ring = tTopo->tidRing(detIdStub);
+        Stub_Endcap_Disc->Fill(disc);
         Stub_Endcap_Ring->Fill(ring);
-        Stub_Endcap_Disc_W->Fill(disk, displStub - offsetStub);
+        Stub_Endcap_Disc_W->Fill(disc, displStub - offsetStub);
         Stub_Endcap_Ring_W->Fill(ring, displStub - offsetStub);
-        Stub_Endcap_Disc_O->Fill(disk, offsetStub);
+        Stub_Endcap_Disc_O->Fill(disc, offsetStub);
         Stub_Endcap_Ring_O->Fill(ring, offsetStub);
 
         if ( posStub.z() > 0 )
         {
           Stub_Endcap_Fw_XY->Fill( posStub.x(), posStub.y() );
           Stub_Endcap_Fw_RZ_Zoom->Fill( posStub.z(), posStub.perp() );
-          Stub_Endcap_Disc_Fw->Fill(disk);
-          Stub_Endcap_Ring_Fw[disk-1]->Fill(ring);
-          Stub_Endcap_Ring_W_Fw[disk-1]->Fill(ring, displStub - offsetStub);
-          Stub_Endcap_Ring_O_Fw[disk-1]->Fill(ring, offsetStub);
+          Stub_Endcap_Disc_Fw->Fill(disc);
+          Stub_Endcap_Ring_Fw[disc-1]->Fill(ring);
+          Stub_Endcap_Ring_W_Fw[disc-1]->Fill(ring, displStub - offsetStub);
+          Stub_Endcap_Ring_O_Fw[disc-1]->Fill(ring, offsetStub);
         }
         else
         {
           Stub_Endcap_Bw_XY->Fill( posStub.x(), posStub.y() );
           Stub_Endcap_Bw_RZ_Zoom->Fill( posStub.z(), posStub.perp() );
-          Stub_Endcap_Disc_Bw->Fill(disk);
-          Stub_Endcap_Ring_Bw[disk-1]->Fill(ring);
-          Stub_Endcap_Ring_W_Bw[disk-1]->Fill(ring, displStub - offsetStub);
-          Stub_Endcap_Ring_O_Bw[disk-1]->Fill(ring, offsetStub);
+          Stub_Endcap_Disc_Bw->Fill(disc);
+          Stub_Endcap_Ring_Bw[disc-1]->Fill(ring);
+          Stub_Endcap_Ring_W_Bw[disc-1]->Fill(ring, displStub - offsetStub);
+          Stub_Endcap_Ring_O_Bw[disc-1]->Fill(ring, offsetStub);
         }
       }
     }
@@ -304,7 +308,7 @@ OuterTrackerMonitorStub::beginRun(edm::Run const&, edm::EventSetup const&)
   Stub_Barrel->setAxisTitle("# L1 Stubs ",2);
   
   //TTStub Endcap stack
-  edm::ParameterSet psTTStub_ECDisc =  conf_.getParameter<edm::ParameterSet>("TH1TTStub_Disks");
+  edm::ParameterSet psTTStub_ECDisc =  conf_.getParameter<edm::ParameterSet>("TH1TTStub_Discs");
   HistoName = "NStubs_Endcap_Disc"; 
   Stub_Endcap_Disc = dqmStore_ ->book1D(HistoName,HistoName, 
       psTTStub_ECDisc.getParameter<int32_t>("Nbinsx"), 
@@ -367,7 +371,7 @@ OuterTrackerMonitorStub::beginRun(edm::Run const&, edm::EventSetup const&)
   
   //TTStub displ/offset
   edm::ParameterSet psTTStub_Barrel_2D =  conf_.getParameter<edm::ParameterSet>("TH2TTStub_DisOf_Layer");
-  edm::ParameterSet psTTStub_ECDisc_2D =  conf_.getParameter<edm::ParameterSet>("TH2TTStub_DisOf_Disk");
+  edm::ParameterSet psTTStub_ECDisc_2D =  conf_.getParameter<edm::ParameterSet>("TH2TTStub_DisOf_Disc");
   edm::ParameterSet psTTStub_ECRing_2D =  conf_.getParameter<edm::ParameterSet>("TH2TTStub_DisOf_Ring");
 
   dqmStore_->setCurrentFolder(topFolderName_+"/Stubs/Width");

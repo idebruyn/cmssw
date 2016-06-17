@@ -27,7 +27,6 @@
 #include "SimDataFormats/EncodedEventId/interface/EncodedEventId.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTStubAssociationMap.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTTrackAssociationMap.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StackedTrackerDetUnit.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 
 #include <memory>

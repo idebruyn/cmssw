@@ -132,7 +132,7 @@ void TTClusterAssociator< Ref_PixelDigi_ >::produce( edm::Event& iEvent, const e
         }
 
         /// Get the DetId
-        const DetId detId = theStackedTrackers->idToDet( tempCluRef->getDetId(), tempCluRef->getStackMember() )->geographicalId();
+        const DetId detId = theTracker->idToDet( tempCluRef->getDetId() )->geographicalId();
 
         /// Get the PixelDigiSimLink
         /// Safety check added after new digitizer (Oct 2014)

@@ -263,10 +263,10 @@ def customise_DQM(process,pileup):
     process.dqmoffline_step.remove(process.SiPixelRawDataErrorSource)
 
     ## DQM for stacks doesn't work yet, so skip adding the outer tracker.
-    ##add Phase 2 Upgrade Outer Tracker
-    #stripIndex=process.DQMOfflinePreDPG.index(process.SiStripDQMTier0)
-    #process.load("DQM.Phase2OuterTracker.OuterTrackerSourceConfig_cff")
-    #process.dqmoffline_step.insert(stripIndex, process.OuterTrackerSource)
+    #add Phase 2 Upgrade Outer Tracker
+    stripIndex=process.DQMOfflinePreDPG.index(process.SiStripDQMTier0)
+    process.load("DQM.Phase2OuterTracker.OuterTrackerSourceConfig_cff")
+    process.dqmoffline_step.insert(stripIndex, process.OuterTrackerSource)
 
     #put isUpgrade flag==true
     process.SiPixelRawDataErrorSource.isUpgrade = cms.untracked.bool(True)

@@ -138,6 +138,7 @@ public:
 
   std::string topFolderName_;
   unsigned int HQDelim_;
+  bool useTracking_;
   bool verbosePlots_;
   
 };
