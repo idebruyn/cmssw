@@ -58,7 +58,7 @@ OuterTrackerMonitorCluster::OuterTrackerMonitorCluster(const edm::ParameterSet& 
 : dqmStore_(edm::Service<DQMStore>().operator->()), conf_(iConfig)
 {
   topFolderName_ = conf_.getParameter<std::string>("TopFolderName");
-  tagTTClusters_ = conf_.getParameter< edm::InputTag >("TTClusters");
+  tagTTClustersToken_ = consumes<edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > > > (conf_.getParameter<edm::InputTag>("TTClusters") );
 }
 
 OuterTrackerMonitorCluster::~OuterTrackerMonitorCluster()
@@ -76,7 +76,7 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
 {
   /// Track Trigger Clusters
   edm::Handle< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTClusterHandle;
-  iEvent.getByLabel( tagTTClusters_, Phase2TrackerDigiTTClusterHandle );
+  iEvent.getByToken( tagTTClustersToken_, Phase2TrackerDigiTTClusterHandle );
   
   /// Geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;
