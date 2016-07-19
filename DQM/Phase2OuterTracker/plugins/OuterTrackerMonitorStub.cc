@@ -68,7 +68,7 @@ OuterTrackerMonitorStub::OuterTrackerMonitorStub(const edm::ParameterSet& iConfi
 {
    //now do what ever initialization is needed
    topFolderName_ = conf_.getParameter<std::string>("TopFolderName");
-   tagTTStubs_ = conf_.getParameter< edm::InputTag >("TTStubs");
+   tagTTStubsToken_ = consumes<edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > > > (conf_.getParameter<edm::InputTag>("TTStubs") );
 }
 
 
@@ -91,7 +91,7 @@ OuterTrackerMonitorStub::analyze(const edm::Event& iEvent, const edm::EventSetup
 {
   /// Track Trigger Stubs
   edm::Handle< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTStubHandle;
-  iEvent.getByLabel( tagTTStubs_, Phase2TrackerDigiTTStubHandle );
+  iEvent.getByToken( tagTTStubsToken_, Phase2TrackerDigiTTStubHandle );
   
   /// Geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;

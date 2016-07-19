@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
@@ -11,8 +12,11 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/ESHandle.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DQM/SiStripCommon/interface/TkHistoMap.h"
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
+
 
 class DQMStore;
 
@@ -62,7 +66,7 @@ public:
  private:
   DQMStore* dqmStore_;
   edm::ParameterSet conf_;
-  edm::InputTag tagTTStubs_;
+  edm::EDGetTokenT<edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > > >  tagTTStubsToken_;
 
   std::string topFolderName_;
 };

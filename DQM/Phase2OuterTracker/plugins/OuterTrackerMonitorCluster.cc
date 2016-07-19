@@ -107,15 +107,14 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
       unsigned int widClu = tempCluRef->findWidth();
       
       
-      MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
-      const GeomDet* theDetUnit = theTrackerGeometry->idToDet(detIdClu.rawId());
-      LocalPoint localPosClu = (theDetUnit)->topology().localPosition(mp);
-      GlobalPoint posClu = (theDetUnit)->surface().toGlobal(localPosClu);
+      //MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
+      //const GeomDet* theDetUnit = theTrackerGeometry->idToDet(detIdClu.rawId());
+      //LocalPoint localPosClu = (theDetUnit)->topology().localPosition(mp);
+      //GlobalPoint posClu = (theDetUnit)->surface().toGlobal(localPosClu);
       
       //GlobalPoint posClu  = theStacXXXkedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
       
-      //GlobalVector posClu =  GlobalVector((theTrackerGeometry->idToDet(detIdClu))->position().basicVector());
-      //GlobalPoint posClu =  (theTrackerGeometry->idToDet(detIdClu))->position();
+      GlobalPoint posClu =  (theTrackerGeometry->idToDet(detIdClu))->position();
       double eta = posClu.eta();
       
       

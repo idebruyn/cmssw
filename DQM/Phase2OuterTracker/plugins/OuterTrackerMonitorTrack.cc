@@ -35,10 +35,11 @@
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
-#include "DataFormats/L1TrackTrigger/interface/TTTrack.h"
-#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/CommonTopologies/interface/PixelTopology.h"
-
+//#include "DataFormats/L1TrackTrigger/interface/TTTrack.h" // does not exist yet in 81X
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 
 //
 // constructors and destructor
@@ -47,7 +48,7 @@ OuterTrackerMonitorTrack::OuterTrackerMonitorTrack(const edm::ParameterSet& iCon
 : dqmStore_(edm::Service<DQMStore>().operator->()), conf_(iConfig)
 {
   topFolderName_ = conf_.getParameter<std::string>("TopFolderName");
-  tagTTTracks_ = conf_.getParameter< edm::InputTag >("TTTracks");
+  //tagTTTracksToken_ = consumes<edmNew::DetSetVector< TTTrack< Ref_Phase2TrackerDigi_ > > > (conf_.getParameter<edm::InputTag>("TTTracks") );
   HQDelim_ = conf_.getParameter<int>("HQDelim");
 }
 
@@ -64,9 +65,10 @@ OuterTrackerMonitorTrack::~OuterTrackerMonitorTrack()
 // ------------ method called for each event  ------------
 void OuterTrackerMonitorTrack::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  /*
   /// Track Trigger Tracks
   edm::Handle< std::vector< TTTrack< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTTrackHandle;
-  iEvent.getByLabel( tagTTTracks_, Phase2TrackerDigiTTTrackHandle );
+  iEvent.getByToken( tagTTTracksToken_, Phase2TrackerDigiTTTrackHandle );
   
   unsigned int numHQTracks = 0;
   unsigned int numLQTracks = 0;
@@ -130,7 +132,7 @@ void OuterTrackerMonitorTrack::analyze(const edm::Event& iEvent, const edm::Even
   Track_N->Fill(numTracks); 
   Track_HQ_N->Fill( numHQTracks );
   Track_LQ_N->Fill( numLQTracks );
-
+  */
 } // end of method
 
 
