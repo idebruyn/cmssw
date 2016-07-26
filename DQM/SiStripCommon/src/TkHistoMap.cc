@@ -132,7 +132,9 @@ void TkHistoMap::createTkHistoMap(DQMStore::IBooker & ibooker , std::string& pat
 						0.0, 0.0);
     //std::cout<<"2D Booked Succesfully"<<std::endl;
     uint32_t layerUint = (uint32_t) layer;
-    sprintf(myName,"%s_%i",fullName.c_str(),layer);
+    strcpy(myName, fullName.c_str());
+    strcat(myName,"_TH2Poly");
+//     sprintf(myName,"%s_%i",fullName.c_str(),layer);
     //std::cout<<"Name of Me Poly: "<<myName<<std::endl;
     pu->getComponents(layerUint,  highXPoly ,  lowXPoly ,  highYPoly ,  lowYPoly);
     
