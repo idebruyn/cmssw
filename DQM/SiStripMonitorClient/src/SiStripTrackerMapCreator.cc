@@ -391,6 +391,7 @@ void SiStripTrackerMapCreator::setTkMapFromHistogram(DQMStore* dqm_store, std::s
       for (std::vector<MonitorElement*>::const_iterator itkh = meVec.begin();  itkh != meVec.end(); itkh++) {
 	name = (*itkh)->getName();
 	if (name.find("TkHMap") == std::string::npos) continue;
+        if (name.find("TH2Poly") == std::string::npos) continue; // != TProfile2D, == TH2Poly
 	if (htype == "QTestAlarm" ){
 	  edm::LogError("ItShouldNotBeHere") << "QTestAlarm map: you should not be here!";
 	  tkhmap_me = (*itkh);
@@ -462,24 +463,43 @@ void SiStripTrackerMapCreator::paintTkMapFromHistogram(DQMStore* dqm_store, Moni
   //  if(useSSQuality_) { eSetup_.get<SiStripQualityRcd>().get(ssqLabel_,ssq);  }
 
   std::string name  = me->getName();
-  std::string lname = name.substr(name.find("TkHMap_")+7);  
-  lname = lname.substr(lname.find("_T")+1);
-  std::vector<uint32_t> layer_detids;
-  tkDetMap_->getDetsForLayer(tkDetMap_->getLayerNum(lname), layer_detids);
-  for (std::vector<uint32_t>::const_iterator idet = layer_detids.begin(); idet != layer_detids.end(); idet++) {
-    uint32_t det_id= (*idet);
-    if (det_id <= 0) continue;
+  
+  // -----------------TH2Poly---------------------------
+  TList* bins = me->getTH2Poly()->GetBins();
+  TIter next(bins);
+  TObject* bin = 0;
+  while ((bin=next())){
     nDet++;
-    const TkLayerMap::XYbin& xyval = tkDetMap_->getXY(det_id , cached_detid , cached_layer , cached_XYbin);
+    Int_t binnumber = ((TH2PolyBin*) bin)->GetBinNumber();
+    const char* id = me->getTH2Poly()->GetBinName(binnumber);
+    uint32_t det_id = atoi(id);
+    if (det_id <= 0) continue;
     float fval = 0.0;
-    if ( (name.find("NumberOfOfffTrackCluster") != std::string::npos) || 
-         (name.find("NumberOfOnTrackCluster") != std::string::npos) ) {
-      if (me->kind() == MonitorElement::DQM_KIND_TPROFILE2D) {   
-	TProfile2D* tp = me->getTProfile2D() ;
-	fval =  tp->GetBinEntries(tp->GetBin(xyval.ix, xyval.iy)) * tp->GetBinContent(xyval.ix, xyval.iy);
-      }
-    } else  fval = me->getBinContent(xyval.ix, xyval.iy);
-    if (htype == "QTestAlarm") {
+    fval = me->getTH2Poly()->GetBinContent(binnumber);
+// ----------------------------------------------------
+    
+// -----------------TProfile2D-------------------------  
+//   std::string lname = name.substr(name.find("TkHMap_")+7);  
+//   lname = lname.substr(lname.find("_T")+1);
+//   std::vector<uint32_t> layer_detids;
+//   tkDetMap_->getDetsForLayer(tkDetMap_->getLayerNum(lname), layer_detids);
+//   for (std::vector<uint32_t>::const_iterator idet = layer_detids.begin(); idet != layer_detids.end(); idet++) {
+//     uint32_t det_id= (*idet);
+//     if (det_id <= 0) continue;
+//     std::cout<<det_id<<std::endl;
+//     nDet++;
+//     const TkLayerMap::XYbin& xyval = tkDetMap_->getXY(det_id , cached_detid , cached_layer , cached_XYbin);
+//     float fval = 0.0;
+//     if ( (name.find("NumberOfOfffTrackCluster") != std::string::npos) || 
+//          (name.find("NumberOfOnTrackCluster") != std::string::npos) ) {
+//       if (me->kind() == MonitorElement::DQM_KIND_TPROFILE2D) {   
+// 	TProfile2D* tp = me->getTProfile2D() ;
+// 	fval =  tp->GetBinEntries(tp->GetBin(xyval.ix, xyval.iy)) * tp->GetBinContent(xyval.ix, xyval.iy);
+//       }
+//     } else  fval = me->getBinContent(xyval.ix, xyval.iy);
+// ----------------------------------------------------
+    
+    if (htype == "QTestAlarm") {   
       edm::LogError("ItShouldNotBeHere") << "QTestAlarm map: you should not be here!";
       /*
       int rval, gval, bval;
