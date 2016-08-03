@@ -102,12 +102,11 @@ PolyUtil::PolyUtil(){
 	     detFinder->getTIBDetectors(detIdVector,selectedDetIds[i],i-0,0,0,0);
 	   }else if (i>=TIDM_D1&&i<=TIDM_D3){
 	     //detFinder->getTIBDetectors(detIdVector,selectedDetIds[i],1,bkw_fkw,ext,string);
-	     detFinder->getTIDDetectors(detIdVector,selectedDetIds[i],i-4,1,0,0);
+	     detFinder->getTIDDetectors(detIdVector,selectedDetIds[i],1,i-4,0,0);
 	   }else if (i>=TIDP_D1&&i<=TIDP_D3){
 	     //detFinder->getTIBDetectors(detIdVector,selectedDetIds[i],1,bkw_fkw,ext,string);
-	     detFinder->getTIDDetectors(detIdVector,selectedDetIds[i],i-7,2,0,0);
-	   }
-	   else if (i>=TOB_L1&&i<=TOB_L6){
+	     detFinder->getTIDDetectors(detIdVector,selectedDetIds[i],2,i-7,0,0);
+	   }else if (i>=TOB_L1&&i<=TOB_L6){
 	     //detFinder->getTIBDetectors(detIdVector,selectedDetIds[i],i-10,bkw_fkw,ext,string);
 	      detFinder->getTOBDetectors(detIdVector,selectedDetIds[i],i-10,0,0);
 	   }else if (i>=TECM_W1&&i<=TECM_W9){
