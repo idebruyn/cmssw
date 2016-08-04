@@ -31,7 +31,7 @@ def customise(process):
 	process.g4SimHits.Physics.Verbosity = cms.untracked.int32(0)
 	process.g4SimHits.G4Commands = cms.vstring('')
 	# check flavor of exotics and choose exotica Physics List
-	if FLAVOR=="gluino" or FLAVOR=="stop":
+	if FLAVOR=="gluino" or FLAVOR=="stop" or FLAVOR=="simp":
           process.customPhysicsSetup.processesDef = PROCESS_FILE
           process.g4SimHits.Physics.ExoticaPhysicsSS = cms.untracked.bool(False)
 	elif FLAVOR =="stau":
