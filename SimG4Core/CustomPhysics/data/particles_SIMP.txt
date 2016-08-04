@@ -1,0 +1,5 @@
+Block MASS   #
+#  PDG code   mass                 particle
+        9000006     100.0  #  simp
+        -9000006    100.0  #  simpbar
+Block       
