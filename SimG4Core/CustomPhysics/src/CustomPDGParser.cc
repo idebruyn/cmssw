@@ -153,7 +153,7 @@ double CustomPDGParser::s_spin(int pdg)
   // if the spin is important for the simulation 
   // it should be hard-coded based on PDG ID in this function.  
  int pdgAbs=abs(pdg);
- if (pdgAbs=9000006) return 0.5;
+ if ((pdgAbs=9000006)) return 0.5;
  else return pdgAbs % 10;    
 }
 
