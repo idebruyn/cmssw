@@ -86,6 +86,7 @@ void CustomParticleFactory::addCustomParticle(int pdgCode, double mass, const st
   G4double spectatormass;
   G4ParticleDefinition* spectator; 
   //////////////////////
+  if(CustomPDGParser::s_isSIMP(pdgCode)) pType = "simp", std::cout<<"isSIMP!!"<<std::endl;
   if(CustomPDGParser::s_isRHadron(pdgCode)) pType = "rhadron";
   if(CustomPDGParser::s_isSLepton(pdgCode)) pType = "sLepton";
   if(CustomPDGParser::s_isMesonino(pdgCode)) pType = "mesonino";
