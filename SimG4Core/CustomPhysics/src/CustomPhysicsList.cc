@@ -48,7 +48,7 @@ void CustomPhysicsList::ConstructProcess() {
 }
  
 void CustomPhysicsList::addCustomPhysics(){
-
+  std::cout<<"Using CustomPhysicsList::addCustomPhysics!!"<<std::endl;
   edm::LogInfo("CustomPhysics") << " CustomPhysicsList: adding CustomPhysics processes "
 				<< "for the list of particles: \n";
   aParticleIterator->reset();
@@ -78,7 +78,9 @@ void CustomPhysicsList::addCustomPhysics(){
 	if(cp != 0) {
 	  if(particle->GetParticleType()=="rhadron" || 
 	     particle->GetParticleType()=="mesonino" || 
-	     particle->GetParticleType() == "sbaryon"){
+	     particle->GetParticleType() == "sbaryon" ||
+       particle->GetParticleType() == "simp"){
+      std::cout<<"Using helper and FullModelHadronicProcess"<<std::endl;
 	    if(!myHelper) myHelper = new G4ProcessHelper(myConfig);
 	    pmanager->AddDiscreteProcess(new FullModelHadronicProcess(myHelper));
 	  }
