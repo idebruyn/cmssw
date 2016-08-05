@@ -7,6 +7,7 @@
 class CustomPDGParser
 {
 public:
+ static bool s_isSIMP(int pdg);
  static bool s_isRHadron(int pdg);
  static bool s_isstopHadron(int pdg);
  static bool s_issbottomHadron(int pdg) ;

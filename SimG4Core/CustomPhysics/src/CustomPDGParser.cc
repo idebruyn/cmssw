@@ -7,6 +7,12 @@
 
 }*/
 
+bool CustomPDGParser::s_isSIMP(int pdg)
+{
+ int pdgAbs=abs(pdg);
+ return ( (pdgAbs == 9000006) );
+}
+
 bool CustomPDGParser::s_isRHadron(int pdg) 
 {
  int pdgAbs=abs(pdg);
