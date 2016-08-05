@@ -1,0 +1,6 @@
+simp # proton # simp # proton 
+simp # neutron # simp # neutron 
+simp # proton # simp # proton # pi0 
+simp # proton # simp # neutron # pi+ 
+simp # neutron # simp # neutron # pi0 
+simp # neutron # simp # proton # pi-
