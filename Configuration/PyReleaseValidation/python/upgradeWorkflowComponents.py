@@ -33,6 +33,7 @@ upgradeSteps=[
     'HARVESTFull_trackingOnlyPU',
     'HARVESTFullGlobal',
     'HARVESTFullGlobalPU'
+    ,'DigiFullTrigger'
 ]
 
 upgradeProperties = {
@@ -47,14 +48,14 @@ upgradeProperties = {
         'GT' : 'auto:run2_mc',
         'Custom' : 'SLHCUpgradeSimulations/Configuration/combinedCustoms.cust_2023tilted',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
     },
     '2023D2' : {
         'Geom' : 'Extended2023D2',
         'GT' : 'auto:run2_mc',
         'Custom' : 'SLHCUpgradeSimulations/Configuration/combinedCustoms.cust_2023flat',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
     },
     '2023D3' : {
         'Geom' : 'Extended2023D3',
