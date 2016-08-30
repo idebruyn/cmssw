@@ -75,7 +75,7 @@ void TTStubBuilder< Ref_Phase2TrackerDigi_ >::produce( edm::Event& iEvent, const
     const PixelTopology* top0 = dynamic_cast< const PixelTopology* >( &(pix0->specificTopology()) );
     const int chipSize = 2 * top0->rowsperroc(); /// Need to find ASIC size in half-strip units
 
-    std::map< int, std::vector< TTStub< Ref_Phase2TrackerDigi_ > > > moduleStubs; /// Temporary storage for stubs before max check
+    std::unordered_map< int, std::vector< TTStub< Ref_Phase2TrackerDigi_ > > > moduleStubs; /// Temporary storage for stubs before max check
 
     /// Loop over pairs of Clusters
     for ( auto lowerClusterIter = lowerClusters.begin();
@@ -85,7 +85,7 @@ void TTStubBuilder< Ref_Phase2TrackerDigi_ >::produce( edm::Event& iEvent, const
       /// Temporary storage to allow only one stub per inner cluster
       /// if requested in cfi
       std::vector< TTStub< Ref_Phase2TrackerDigi_ > > tempOutput;
-      tempOutput.clear();
+      // tempOutput.clear();
 
       for ( auto upperClusterIter = upperClusters.begin();
                  upperClusterIter != upperClusters.end();
@@ -136,7 +136,7 @@ void TTStubBuilder< Ref_Phase2TrackerDigi_ >::produce( edm::Event& iEvent, const
       for ( unsigned int iTempStub = 0; iTempStub < tempOutput.size(); ++iTempStub )
       {
         /// Get the stub
-        TTStub< Ref_Phase2TrackerDigi_ > tempTTStub = tempOutput.at( iTempStub );
+        const TTStub< Ref_Phase2TrackerDigi_ >& tempTTStub = tempOutput[iTempStub];
 
         /// Put in the output
         if ( maxStubs == 0 )
@@ -154,9 +154,9 @@ void TTStubBuilder< Ref_Phase2TrackerDigi_ >::produce( edm::Event& iEvent, const
           if ( moduleStubs.find( chip ) == moduleStubs.end() ) /// Already a stub for this ASIC?
           {
             /// No, so new entry
-            std::vector< TTStub< Ref_Phase2TrackerDigi_ > > tempStubs;
-            tempStubs.clear();
-            tempStubs.push_back( tempTTStub );
+            std::vector< TTStub< Ref_Phase2TrackerDigi_ > > tempStubs(1,tempTTStub);
+            //tempStubs.clear();
+            //tempStubs.push_back( tempTTStub );
             moduleStubs.insert( std::pair< int, std::vector< TTStub< Ref_Phase2TrackerDigi_ > > >( chip, tempStubs ) );
           }
           else

@@ -15,7 +15,6 @@ void TTClusterBuilder< Ref_Phase2TrackerDigi_ >::produce( edm::Event& iEvent, co
 {
   /// Prepare output
   auto ttClusterDSVForOutput      = std::make_unique<edmNew::DetSetVector<TTCluster<Ref_Phase2TrackerDigi_>>>();
-  
   std::map< DetId, std::vector< Ref_Phase2TrackerDigi_ > > rawHits;
   this->RetrieveRawHits( rawHits, iEvent );
 

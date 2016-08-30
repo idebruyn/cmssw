@@ -48,7 +48,7 @@ process.source = cms.Source("EmptySource")
 # Global tag for PromptReco
 process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:upgradePLS3', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc', '')
 
 # Random seeds
 process.RandomNumberGeneratorService.generator.initialSeed      = 1
