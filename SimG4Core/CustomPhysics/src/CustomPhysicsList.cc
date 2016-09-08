@@ -83,6 +83,11 @@ void CustomPhysicsList::ConstructProcess() {
 	  if(!myHelper) myHelper = new G4ProcessHelper(myConfig);
 	  pmanager->AddDiscreteProcess(new FullModelHadronicProcess(myHelper));
 	}
+        if(particle->GetParticleType()=="simp"){
+          std::cout<<"Use helper and FullModelHadronicProcess in CustomPhysicsList"<<std::endl;
+          if(!myHelper) myHelper = new G4ProcessHelper(myConfig);
+          pmanager->AddDiscreteProcess(new FullModelHadronicProcess(myHelper));
+        }
       }
     }
   }
