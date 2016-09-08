@@ -1,5 +1,5 @@
 Block MASS   #
 #  PDG code   mass                 particle
-        9000006     100.0  #  simp
-        -9000006    100.0  #  simpbar
+        9000006     100.0  #  chi
+       -9000006     100.0  #  chibar
 Block       

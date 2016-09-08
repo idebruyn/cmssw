@@ -1,6 +1,12 @@
-simp # proton # simp # proton 
-simp # neutron # simp # neutron 
-simp # proton # simp # proton # pi0 
-simp # proton # simp # neutron # pi+ 
-simp # neutron # simp # neutron # pi0 
-simp # neutron # simp # proton # pi-
+chi # proton # chi # proton 
+chi # proton # chi # proton # pi0 
+chi # proton # chi # neutron # pi+ 
+chi # neutron # chi # neutron 
+chi # neutron # chi # neutron # pi0 
+chi # neutron # chi # proton # pi-
+chibar # proton # chibar # proton 
+chibar # proton # chibar # proton # pi0 
+chibar # proton # chibar # neutron # pi+ 
+chibar # neutron # chibar # neutron 
+chibar # neutron # chibar # neutron # pi0 
+chibar # neutron # chibar # proton # pi-
