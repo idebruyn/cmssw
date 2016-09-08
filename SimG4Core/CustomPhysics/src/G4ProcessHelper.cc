@@ -101,6 +101,7 @@ G4ProcessHelper::G4ProcessHelper(const edm::ParameterSet & p){
   while( (*theParticleIterator)() ){
     CustomParticle* particle = dynamic_cast<CustomParticle*>(theParticleIterator->value());
     std::string name = theParticleIterator->value()->GetParticleName();
+    std::cout<<"ISA: name = theParticleIterator->value()->GetParticleName();  "<<name<<std::endl;
     G4DecayTable* table = theParticleIterator->value()->GetDecayTable();
     if(particle!=0&&table!=0&&name.find("cloud")>name.size()&&hadronlifetime > 0)
       {
@@ -123,6 +124,7 @@ G4bool G4ProcessHelper::ApplicabilityTester(const G4ParticleDefinition& aPart){
 
 G4double G4ProcessHelper::GetInclusiveCrossSection(const G4DynamicParticle *aParticle,
 						   const G4Element *anElement){
+      std::cout<<"Use G4ProcessHelper::GetInclusiveCrossSection"<<std::endl;
 
   //We really do need a dedicated class to handle the cross sections. They might not always be constant
 
@@ -136,6 +138,10 @@ G4double G4ProcessHelper::GetInclusiveCrossSection(const G4DynamicParticle *aPar
   G4String name = aParticle->GetDefinition()->GetParticleName();
   if(!reggemodel)
   {
+    if(CustomPDGParser::s_isSIMP(thePDGCode)) {
+      theXsec = 40 * millibarn;
+      std::cout<<"Use XSec 40mb"<<std::endl;
+    }
   //Flat cross section
   if(CustomPDGParser::s_isRGlueball(thePDGCode)) {
     theXsec = 24 * millibarn;
