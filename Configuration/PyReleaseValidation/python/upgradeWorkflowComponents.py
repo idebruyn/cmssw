@@ -55,8 +55,8 @@ upgradeSteps=[
     'HARVESTFull_trackingOnly',
     'HARVESTFull_trackingOnlyPU',
     'HARVESTFullGlobal',
-    'HARVESTFullGlobalPU',
-    'ALCAFull'
+    'HARVESTFullGlobalPU'
+    ,'DigiFullTrigger'
 ]
 
 upgradeProperties = {}
@@ -90,15 +90,15 @@ upgradeProperties[2023] = {
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
-    },    
+        'ScenToRun' : ['GenSimFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
+    },
     '2023D2' : {
         'Geom' : 'Extended2023D2',
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
-    },    
+        'ScenToRun' : ['GenSimFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
+    },
     '2023D3' : {
         'Geom' : 'Extended2023D3',
         'GT' : 'auto:phase2_realistic',
