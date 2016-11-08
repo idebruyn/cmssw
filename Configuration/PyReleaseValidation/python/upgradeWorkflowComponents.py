@@ -55,7 +55,8 @@ upgradeSteps=[
     'HARVESTFull_trackingOnly',
     'HARVESTFull_trackingOnlyPU',
     'HARVESTFullGlobal',
-    'HARVESTFullGlobalPU'
+    'HARVESTFullGlobalPU',
+    'ALCAFull'
     ,'DigiFullTrigger'
 ]
 
@@ -97,7 +98,7 @@ upgradeProperties[2023] = {
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
     },
     '2023D3' : {
         'Geom' : 'Extended2023D3',
