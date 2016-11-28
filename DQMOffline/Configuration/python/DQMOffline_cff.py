@@ -129,7 +129,13 @@ DQMOfflineTracking = cms.Sequence( TrackingDQMSourceTier0Common *
                                    pvMonitor
                                  )
 
-DQMOuterTracker = cms.Sequence( OuterTrackerSource )
+DQMOuterTracker = cms.Sequence( dqmDcsInfo *
+                                OuterTrackerSource *
+                                DQMMessageLogger *
+                                dqmPhysics *
+                                pvMonitor *
+                                produceDenoms
+                                )
 
 DQMOfflineMuon = cms.Sequence( dtSources *
                                rpcTier0Source *

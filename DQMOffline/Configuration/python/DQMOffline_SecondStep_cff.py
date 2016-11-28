@@ -109,7 +109,13 @@ DQMHarvestCommonSiStripZeroBias = cms.Sequence(dqmRefHistoRootFileGetter *
 DQMHarvestTracking = cms.Sequence( TrackingOfflineDQMClient *
                                    dqmFastTimerServiceClient )
 
-DQMHarvestOuterTracker = cms.Sequence( OuterTrackerClient )
+DQMHarvestOuterTracker = cms.Sequence( dqmRefHistoRootFileGetter *
+                                 dqmDcsInfoClient *
+                                 OuterTrackerClient *
+                                 dqmFEDIntegrityClient *
+                                 DQMMessageLoggerClientSeq *
+                                 dqmFastTimerServiceClient
+                                 )
 
 DQMHarvestMuon = cms.Sequence( dtClients *
                                rpcTier0Client *
