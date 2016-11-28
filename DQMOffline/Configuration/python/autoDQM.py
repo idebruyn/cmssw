@@ -50,10 +50,13 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
                                    'dqmHarvestingFakeHLT'],
             'liteDQMHI': ['liteDQMOfflineHeavyIons',
                           'PostDQMOffline',
-                          'dqmHarvesting']
+                          'dqmHarvesting'],
+            'outerTracker': ['DQMOffline+DQMOuterTracker',
+                             'PostDQMOffline',
+                             'dqmHarvesting+DQMHarvestOuterTracker']
             }
 
-_phase2_allowed = ['trackingOnlyDQM','muon','hcal','hcal2']
+_phase2_allowed = ['trackingOnlyDQM','outerTracker','muon','hcal','hcal2']
 autoDQM['phase2'] = ['','','']
 for i in [0,2]:
     autoDQM['phase2'][i] = '+'.join([autoDQM[m][i] for m in _phase2_allowed])

@@ -8,3 +8,7 @@ OuterTrackerSource = cms.Sequence(OuterTrackerMonitorCluster
 				  * OuterTrackerMonitorStub
 #				  * OuterTrackerMonitorTrack
           )
+
+#from Configuration.Eras.Modifier_phase2_tracker_cff import phase2_tracker
+#phase2_tracker.toReplaceWith(OuterTrackerSource)
+#phase2_tracker.toModify(OuterTrackerSource)
