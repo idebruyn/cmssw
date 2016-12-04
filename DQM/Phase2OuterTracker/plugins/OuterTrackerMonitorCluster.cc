@@ -81,7 +81,7 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
   /// Geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;
   const TrackerTopology* tTopo;
-  iSetup.get< IdealGeometryRecord >().get(tTopoHandle);
+  iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
   tTopo = tTopoHandle.product();
   
   edm::ESHandle< TrackerGeometry > tGeometryHandle;
@@ -107,13 +107,13 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
       unsigned int widClu = tempCluRef->findWidth();
       
       
-      //MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
-      //const GeomDet* theDetUnit = theTrackerGeometry->idToDet(detIdClu.rawId());
-      //GlobalPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
+      MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
+      const GeomDet* theDetUnit = theTrackerGeometry->idToDet(detIdClu.rawId());
+      GlobalPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
       
       //GlobalPoint posClu  = theStacXXXkedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
       
-      GlobalPoint posClu =  (theTrackerGeometry->idToDet(detIdClu))->position();
+      //GlobalPoint posClu =  (theTrackerGeometry->idToDet(detIdClu))->position();
       double eta = posClu.eta();
       
       

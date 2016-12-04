@@ -96,7 +96,7 @@ OuterTrackerMonitorStub::analyze(const edm::Event& iEvent, const edm::EventSetup
   /// Geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;
   const TrackerTopology* tTopo;
-  iSetup.get< IdealGeometryRecord >().get(tTopoHandle);
+  iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
   tTopo = tTopoHandle.product();
   
   edm::ESHandle< TrackerGeometry > tGeometryHandle;
