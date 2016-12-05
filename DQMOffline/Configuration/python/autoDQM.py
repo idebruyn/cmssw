@@ -7,6 +7,9 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
             'trackingOnlyDQM' : ["DQMOfflineTracking",
                                  "PostDQMOffline",
                                  "DQMHarvestTracking"],
+            'outerTracker': ['DQMOuterTracker',
+                             'PostDQMOffline',
+                             'DQMHarvestOuterTracker'],
             'muon': ['DQMOfflineMuon',
                      'PostDQMOffline',
                      'DQMHarvestMuon+DQMCertMuon'],
@@ -50,10 +53,7 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
                                    'dqmHarvestingFakeHLT'],
             'liteDQMHI': ['liteDQMOfflineHeavyIons',
                           'PostDQMOffline',
-                          'dqmHarvesting'],
-            'outerTracker': ['DQMOuterTracker',
-                             'PostDQMOffline',
-                             'DQMHarvestOuterTracker']
+                          'dqmHarvesting']
             }
 
 _phase2_allowed = ['trackingOnlyDQM','outerTracker','muon','hcal','hcal2']
