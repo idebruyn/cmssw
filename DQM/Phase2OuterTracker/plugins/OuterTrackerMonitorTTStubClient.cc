@@ -3,7 +3,7 @@
 // Package:    Phase2OuterTracker
 // Class:      Phase2OuterTracker
 // 
-/**\class Phase2OuterTracker OuterTrackerMonitorTrackClient.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTrackClient.cc
+/**\class Phase2OuterTracker OuterTrackerMonitorTTStubClient.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTTStubClient.cc
 
  Description: [one line class summary]
 
@@ -12,7 +12,7 @@
 */
 //
 // Original Author:  Isabelle Helena J De Bruyn
-//         Created:  Mon, 10 Feb 2014 13:57:08 GMT
+//         Created:  Mon, 14 Nov 2014 12:07:38 GMT
 // 
 
 // system include files
@@ -28,7 +28,7 @@
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
-#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTrackClient.h"
+#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTTStubClient.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
 
@@ -40,13 +40,13 @@
 //
 // constructors and destructor
 //
-OuterTrackerMonitorTrackClient::OuterTrackerMonitorTrackClient(const edm::ParameterSet& iConfig)
+OuterTrackerMonitorTTStubClient::OuterTrackerMonitorTTStubClient(const edm::ParameterSet& iConfig)
 {
  
 }
 
 
-OuterTrackerMonitorTrackClient::~OuterTrackerMonitorTrackClient()
+OuterTrackerMonitorTTStubClient::~OuterTrackerMonitorTTStubClient()
 {
  
 
@@ -59,7 +59,7 @@ OuterTrackerMonitorTrackClient::~OuterTrackerMonitorTrackClient()
 
 // ------------ method called for each event  ------------
 void
-OuterTrackerMonitorTrackClient::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+OuterTrackerMonitorTTStubClient::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   
 }
@@ -67,7 +67,7 @@ OuterTrackerMonitorTrackClient::analyze(const edm::Event& iEvent, const edm::Eve
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-OuterTrackerMonitorTrackClient::beginRun(const edm::Run& run, const edm::EventSetup& es)
+OuterTrackerMonitorTTStubClient::beginRun(const edm::Run& run, const edm::EventSetup& es)
 {
 
 
@@ -76,9 +76,9 @@ OuterTrackerMonitorTrackClient::beginRun(const edm::Run& run, const edm::EventSe
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-OuterTrackerMonitorTrackClient::endJob(void) 
+OuterTrackerMonitorTTStubClient::endJob(void) 
 {
 
 }
 
-DEFINE_FWK_MODULE(OuterTrackerMonitorTrackClient);
+DEFINE_FWK_MODULE(OuterTrackerMonitorTTStubClient);

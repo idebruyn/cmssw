@@ -3,7 +3,7 @@
 // Package:    Phase2OuterTracker
 // Class:      Phase2OuterTracker
 //
-/**\class Phase2OuterTracker OuterTrackerMonitorCluster.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorCluster.cc
+/**\class Phase2OuterTracker OuterTrackerMonitorTTCluster.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTTCluster.cc
  
  Description: [one line class summary]
  
@@ -31,7 +31,7 @@
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
-#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorCluster.h"
+#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTTCluster.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
@@ -54,14 +54,14 @@
 //
 // constructors and destructor
 //
-OuterTrackerMonitorCluster::OuterTrackerMonitorCluster(const edm::ParameterSet& iConfig)
+OuterTrackerMonitorTTCluster::OuterTrackerMonitorTTCluster(const edm::ParameterSet& iConfig)
 : dqmStore_(edm::Service<DQMStore>().operator->()), conf_(iConfig)
 {
   topFolderName_ = conf_.getParameter<std::string>("TopFolderName");
   tagTTClustersToken_ = consumes<edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > > > (conf_.getParameter<edm::InputTag>("TTClusters") );
 }
 
-OuterTrackerMonitorCluster::~OuterTrackerMonitorCluster()
+OuterTrackerMonitorTTCluster::~OuterTrackerMonitorTTCluster()
 {
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
@@ -72,7 +72,7 @@ OuterTrackerMonitorCluster::~OuterTrackerMonitorCluster()
 //
 
 // ------------ method called for each event  ------------
-void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   /// Track Trigger Clusters
   edm::Handle< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTClusterHandle;
@@ -175,7 +175,7 @@ void OuterTrackerMonitorCluster::analyze(const edm::Event& iEvent, const edm::Ev
 
 // ------------ method called once each job just before starting event loop  ------------
 void
-OuterTrackerMonitorCluster::beginRun(const edm::Run& run, const edm::EventSetup& es)
+OuterTrackerMonitorTTCluster::beginRun(const edm::Run& run, const edm::EventSetup& es)
 {
   SiStripFolderOrganizer folder_organizer;
   folder_organizer.setSiStripFolderName(topFolderName_);
@@ -400,9 +400,9 @@ OuterTrackerMonitorCluster::beginRun(const edm::Run& run, const edm::EventSetup&
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-OuterTrackerMonitorCluster::endJob(void) 
+OuterTrackerMonitorTTCluster::endJob(void) 
 {
 	
 }
 
-DEFINE_FWK_MODULE(OuterTrackerMonitorCluster);
+DEFINE_FWK_MODULE(OuterTrackerMonitorTTCluster);

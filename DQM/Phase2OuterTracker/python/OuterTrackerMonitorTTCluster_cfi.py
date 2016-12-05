@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-OuterTrackerMonitorCluster = cms.EDAnalyzer('OuterTrackerMonitorCluster',
+OuterTrackerMonitorTTCluster = cms.EDAnalyzer('OuterTrackerMonitorTTCluster',
 
     TopFolderName = cms.string('Phase2OuterTracker'),
     TTClusters    = cms.InputTag("TTClustersFromPhase2TrackerDigis", "ClusterInclusive"),

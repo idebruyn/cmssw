@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-OuterTrackerMonitorStub = cms.EDAnalyzer('OuterTrackerMonitorStub',
+OuterTrackerMonitorTTStub = cms.EDAnalyzer('OuterTrackerMonitorTTStub',
     
     TopFolderName = cms.string('Phase2OuterTracker'),
     TTStubs       = cms.InputTag("TTStubsFromPhase2TrackerDigis", "StubAccepted"),

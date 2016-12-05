@@ -1,10 +1,9 @@
-#ifndef Phase2OuterTracker_OuterTrackerMonitorClusterClient_h
-#define Phase2OuterTracker_OuterTrackerMonitorClusterClient_h
+#ifndef Phase2OuterTracker_OuterTrackerMonitorTTClusterClient_h
+#define Phase2OuterTracker_OuterTrackerMonitorTTClusterClient_h
 
 
 #include <vector>
 #include <memory>
-//#include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
@@ -18,11 +17,11 @@
 
 class DQMStore;
 
-class OuterTrackerMonitorClusterClient : public edm::EDAnalyzer {
+class OuterTrackerMonitorTTClusterClient : public edm::EDAnalyzer {
 
 public:
-  explicit OuterTrackerMonitorClusterClient(const edm::ParameterSet&);
-  ~OuterTrackerMonitorClusterClient();
+  explicit OuterTrackerMonitorTTClusterClient(const edm::ParameterSet&);
+  ~OuterTrackerMonitorTTClusterClient();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   //virtual void beginJob() ;
   virtual void endJob() ;

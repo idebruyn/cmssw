@@ -3,7 +3,7 @@
 // Package:    Phase2OuterTracker
 // Class:      Phase2OuterTracker
 //
-/**\class Phase2OuterTracker OuterTrackerMonitorTrack.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTrack.cc
+/**\class Phase2OuterTracker OuterTrackerMonitorTTTrack.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTTTrack.cc
  
  Description: [one line class summary]
  
@@ -31,7 +31,7 @@
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
-#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTrack.h"
+#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTTTrack.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
@@ -44,7 +44,7 @@
 //
 // constructors and destructor
 //
-OuterTrackerMonitorTrack::OuterTrackerMonitorTrack(const edm::ParameterSet& iConfig)
+OuterTrackerMonitorTTTrack::OuterTrackerMonitorTTTrack(const edm::ParameterSet& iConfig)
 : dqmStore_(edm::Service<DQMStore>().operator->()), conf_(iConfig)
 {
   topFolderName_ = conf_.getParameter<std::string>("TopFolderName");
@@ -52,7 +52,7 @@ OuterTrackerMonitorTrack::OuterTrackerMonitorTrack(const edm::ParameterSet& iCon
   HQDelim_ = conf_.getParameter<int>("HQDelim");
 }
 
-OuterTrackerMonitorTrack::~OuterTrackerMonitorTrack()
+OuterTrackerMonitorTTTrack::~OuterTrackerMonitorTTTrack()
 {
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
@@ -63,7 +63,7 @@ OuterTrackerMonitorTrack::~OuterTrackerMonitorTrack()
 //
 
 // ------------ method called for each event  ------------
-void OuterTrackerMonitorTrack::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+void OuterTrackerMonitorTTTrack::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   /*
   /// Track Trigger Tracks
@@ -138,7 +138,7 @@ void OuterTrackerMonitorTrack::analyze(const edm::Event& iEvent, const edm::Even
 
 // ------------ method called once each job just before starting event loop  ------------
 void
-OuterTrackerMonitorTrack::beginRun(const edm::Run& run, const edm::EventSetup& es)
+OuterTrackerMonitorTTTrack::beginRun(const edm::Run& run, const edm::EventSetup& es)
 {
   SiStripFolderOrganizer folder_organizer;
   folder_organizer.setSiStripFolderName(topFolderName_);
@@ -357,9 +357,9 @@ OuterTrackerMonitorTrack::beginRun(const edm::Run& run, const edm::EventSetup& e
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-OuterTrackerMonitorTrack::endJob(void) 
+OuterTrackerMonitorTTTrack::endJob(void) 
 {
 	
 }
 
-DEFINE_FWK_MODULE(OuterTrackerMonitorTrack);
+DEFINE_FWK_MODULE(OuterTrackerMonitorTTTrack);

@@ -3,7 +3,7 @@
 // Package:    Phase2OuterTracker
 // Class:      Phase2OuterTracker
 // 
-/**\class Phase2OuterTracker OuterTrackerMonitorStub.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorStub.cc
+/**\class Phase2OuterTracker OuterTrackerMonitorTTStub.cc DQM/Phase2OuterTracker/plugins/OuterTrackerMonitorTTStub.cc
 
  Description: [one line class summary]
 
@@ -45,7 +45,7 @@
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DQM/SiStripCommon/interface/SiStripFolderOrganizer.h"
-#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorStub.h"
+#include "DQM/Phase2OuterTracker/interface/OuterTrackerMonitorTTStub.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
@@ -63,7 +63,7 @@
 //
 // constructors and destructor
 //
-OuterTrackerMonitorStub::OuterTrackerMonitorStub(const edm::ParameterSet& iConfig)
+OuterTrackerMonitorTTStub::OuterTrackerMonitorTTStub(const edm::ParameterSet& iConfig)
 : dqmStore_(edm::Service<DQMStore>().operator->()), conf_(iConfig)
 {
    //now do what ever initialization is needed
@@ -72,7 +72,7 @@ OuterTrackerMonitorStub::OuterTrackerMonitorStub(const edm::ParameterSet& iConfi
 }
 
 
-OuterTrackerMonitorStub::~OuterTrackerMonitorStub()
+OuterTrackerMonitorTTStub::~OuterTrackerMonitorTTStub()
 {
  
    // do anything here that needs to be done at desctruction time
@@ -87,7 +87,7 @@ OuterTrackerMonitorStub::~OuterTrackerMonitorStub()
 
 // ------------ method called for each event  ------------
 void
-OuterTrackerMonitorStub::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+OuterTrackerMonitorTTStub::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   /// Track Trigger Stubs
   edm::Handle< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > > > Phase2TrackerDigiTTStubHandle;
@@ -179,7 +179,7 @@ OuterTrackerMonitorStub::analyze(const edm::Event& iEvent, const edm::EventSetup
 
 // ------------ method called when starting to processes a run  ------------
 void 
-OuterTrackerMonitorStub::beginRun(edm::Run const&, edm::EventSetup const&)
+OuterTrackerMonitorTTStub::beginRun(edm::Run const&, edm::EventSetup const&)
 {
    //Make subdivision in the rootfile
   SiStripFolderOrganizer folder_organizer;
@@ -503,10 +503,10 @@ OuterTrackerMonitorStub::beginRun(edm::Run const&, edm::EventSetup const&)
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-OuterTrackerMonitorStub::endJob() 
+OuterTrackerMonitorTTStub::endJob() 
 {
 }
 
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(OuterTrackerMonitorStub);
+DEFINE_FWK_MODULE(OuterTrackerMonitorTTStub);
