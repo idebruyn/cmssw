@@ -41,7 +41,6 @@ autoDQM = { 'common' : ['DQMOfflineCommon',
             'allForPrompt':  ['@common+@muon+@hcal+@jetmet+@ecal',
                               'PostDQMOffline',
                               '@common+@muon+@hcal+@jetmet+@ecal'],
-
             'miniAODDQM': ['DQMOfflineMiniAOD',
                            'PostDQMOfflineMiniAOD',
                            'DQMHarvestMiniAOD'],

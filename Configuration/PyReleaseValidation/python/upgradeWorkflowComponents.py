@@ -77,8 +77,8 @@ upgradeSteps=[
     'HARVESTFull_trackingOnlyPU',
     'HARVESTFullGlobal',
     'HARVESTFullGlobalPU',
-    'ALCAFull'
-    ,'DigiFullTrigger'
+    'ALCAFull',
+    'DigiFullTrigger'
 ]
 
 upgradeProperties = {}
