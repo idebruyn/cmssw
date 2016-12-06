@@ -84,10 +84,13 @@ void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::
   iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
   tTopo = tTopoHandle.product();
   
-  edm::ESHandle< TrackerGeometry > tGeometryHandle;
-  const TrackerGeometry* theTrackerGeometry;
-  iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
-  theTrackerGeometry = tGeometryHandle.product();
+//   edm::ESHandle< TrackerGeometry > tGeometryHandle;
+//   const TrackerGeometry* theTrackerGeometry;
+//   iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
+//   theTrackerGeometry = tGeometryHandle.product();
+  edm::ESHandle< TrackerGeometry > geomHandle;
+  iSetup.get< TrackerDigiGeometryRecord >().get(geomHandle);
+  const TrackerGeometry* tkGeom = &(*geomHandle);
   
   
   /// Loop over the input Clusters
@@ -102,18 +105,22 @@ void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::
       //Make reference cluster
       edm::Ref< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > >, TTCluster< Ref_Phase2TrackerDigi_ > > tempCluRef = edmNew::makeRefTo( Phase2TrackerDigiTTClusterHandle, contentIter );
       
-      DetId detIdClu = theTrackerGeometry->idToDet( tempCluRef->getDetId() )->geographicalId();
+      DetId detIdClu = tkGeom->idToDet( tempCluRef->getDetId() )->geographicalId();
+      //DetId detIdClu(tempCluRef->getDetId());
       unsigned int memberClu = tempCluRef->getStackMember();
       unsigned int widClu = tempCluRef->findWidth();
       
       
-      MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
-      const GeomDet* theDetUnit = theTrackerGeometry->idToDet(detIdClu.rawId());
-      GlobalPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
+      //MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
+      //const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu.rawId());
+      const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu);
+      LocalPoint localPos = tempCluRef->findAverageLocalPosition(theDetUnit);
+      //Global3DPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
+      Global3DPoint posClu = (theDetUnit)->surface().toGlobal( localPos );
       
       //GlobalPoint posClu  = theStacXXXkedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
       
-      //GlobalPoint posClu =  (theTrackerGeometry->idToDet(detIdClu))->position();
+      //GlobalPoint posClu =  tempCluRef->findAverageGlobalPosition(theDetUnit);
       double eta = posClu.eta();
       
       

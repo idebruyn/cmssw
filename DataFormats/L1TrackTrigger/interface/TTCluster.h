@@ -22,6 +22,9 @@
 #include "DataFormats/Phase2TrackerDigi/interface/Phase2TrackerDigi.h"
 #include "DataFormats/GeometryCommonDetAlgo/interface/MeasurementPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h" /// NOTE: this is needed even if it seems not
+//#include "DataFormats/GeometryVector/interface/LocalPoint.h"
+#include "Geometry/CommonTopologies/interface/Topology.h"
+#include "Geometry/CommonDetUnit/interface/GeomDet.h"
 
 template< typename T >
 class TTCluster
@@ -64,6 +67,11 @@ class TTCluster
     /// Average cluster coordinates
     MeasurementPoint findHitLocalCoordinates( unsigned int hitIdx ) const;
     MeasurementPoint findAverageLocalCoordinates() const;
+    /// Hit position
+    LocalPoint findHitLocalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const;
+    GlobalPoint findHitGlobalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const;
+    LocalPoint findAverageLocalPosition( const GeomDet* theGeomDet ) const;
+    GlobalPoint findAverageGlobalPosition( const GeomDet* theGeomDet ) const;
 
     /// Information
     std::string print( unsigned int i = 0 ) const;
@@ -135,6 +143,18 @@ MeasurementPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Ph
 
 template< >
 MeasurementPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findAverageLocalCoordinates() const;
+
+template< >
+LocalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findHitLocalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const;
+
+template< >
+GlobalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findHitGlobalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const;
+
+template< >
+LocalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findAverageLocalPosition( const GeomDet* theGeomDet ) const;
+
+template< >
+GlobalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findAverageGlobalPosition( const GeomDet* theGeomDet ) const;
 
 /// Operations with coordinates stored locally
 template< typename T > 
