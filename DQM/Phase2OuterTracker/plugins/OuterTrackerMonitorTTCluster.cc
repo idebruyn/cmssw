@@ -111,10 +111,11 @@ void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::
       unsigned int widClu = tempCluRef->findWidth();
       
       
-      //MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
+      MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
       //const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu.rawId());
       const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu);
-      LocalPoint localPos = tempCluRef->findAverageLocalPosition(theDetUnit);
+      //LocalPoint localPos = tempCluRef->findAverageLocalPosition(theDetUnit);
+      LocalPoint localPos( mp.x(), mp.y() );  //// NO! Not Carthesian!
       //Global3DPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
       Global3DPoint posClu = (theDetUnit)->surface().toGlobal( localPos );
       

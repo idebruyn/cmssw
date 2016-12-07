@@ -4,6 +4,7 @@ OuterTrackerMonitorTTCluster = cms.EDAnalyzer('OuterTrackerMonitorTTCluster',
 
     TopFolderName = cms.string('Phase2OuterTracker'),
     TTClusters    = cms.InputTag("TTClustersFromPhase2TrackerDigis", "ClusterInclusive"),
+#    TTClusters    = cms.InputTag("TTStubsFromPhase2TrackerDigis", "ClusterAccepted"),
 
 # Number of clusters per layer
     TH1TTCluster_Barrel = cms.PSet(
