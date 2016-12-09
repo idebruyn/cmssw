@@ -49,8 +49,8 @@ MeasurementPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Ph
   }
   else
   {
-    int row = this->getRows().at(hitIdx);
-    int col = this->getCols().at(hitIdx);
+    int row = this->getRows()[hitIdx];
+    int col = this->getCols()[hitIdx];
     MeasurementPoint mp( row, col );
     return mp;
   }
@@ -91,71 +91,6 @@ MeasurementPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Ph
     }
   }
   return MeasurementPoint( averageRow, averageCol );
-}
-
-/// Get hit local position
-template< >
-LocalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findHitLocalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const
-{
-  //const GeomDetUnit* geomDetUnit = idToDetUnit( this->getDetId(), this->getStackMember() );
-  MeasurementPoint mp( theHits[hitIdx]->row(), theHits[hitIdx]->column() );
-  return theGeomDet->topology().localPosition( mp );
-}
-
-/// Get hit global position
-template< >
-GlobalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findHitGlobalPosition( const GeomDet* theGeomDet, unsigned int hitIdx ) const
-{
-  //const GeomDetUnit* geomDetUnit = idToDetUnit( this->getDetId(), this->getStackMember() );
-  MeasurementPoint mp( theHits[hitIdx]->row(), theHits[hitIdx]->column() );
-  return theGeomDet->surface().toGlobal( theGeomDet->topology().localPosition( mp ) );
-}
-
-/// Unweighted average local cluster position
-template< >
-LocalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findAverageLocalPosition( const GeomDet* theGeomDet ) const
-{
-  double averageX = 0.0;
-  double averageY = 0.0;
-
-  /// Loop over the hits and calculate the average coordinates
-  if ( theHits.size() != 0 )
-  {
-    for ( unsigned int i = 0; i < theHits.size(); i++ )
-    {
-      LocalPoint thisHitPosition = findHitLocalPosition( theGeomDet, i );
-      averageX += thisHitPosition.x();
-      averageY += thisHitPosition.y();
-    }
-    averageX /= theHits.size();
-    averageY /= theHits.size();
-  }
-  return LocalPoint( averageX, averageY );
-}
-
-/// Unweighted average cluster position
-template< >
-GlobalPoint TTCluster< edm::Ref< edm::DetSetVector< Phase2TrackerDigi >, Phase2TrackerDigi > >::findAverageGlobalPosition( const GeomDet* theGeomDet ) const
-{
-  double averageX = 0.0;
-  double averageY = 0.0;
-  double averageZ = 0.0;
-
-  /// Loop over the hits and calculate the average coordinates
-  if ( theHits.size() != 0 )
-  {
-    for ( unsigned int i = 0; i < theHits.size(); i++ )
-    {
-      GlobalPoint thisHitPosition = findHitGlobalPosition( theGeomDet, i );
-      averageX += thisHitPosition.x();
-      averageY += thisHitPosition.y();
-      averageZ += thisHitPosition.z();
-    }
-    averageX /= theHits.size();
-    averageY /= theHits.size();
-    averageZ /= theHits.size();
-  }
-  return GlobalPoint( averageX, averageY, averageZ );
 }
 
 /// Coordinates stored locally
