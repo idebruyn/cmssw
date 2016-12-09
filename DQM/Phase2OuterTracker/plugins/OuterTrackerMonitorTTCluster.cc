@@ -41,14 +41,8 @@
 #include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/CommonDetUnit/interface/GeomDet.h"
-#include "Geometry/CommonDetUnit/interface/GeomDetUnit.h"
-#include "Geometry/CommonDetUnit/interface/GeomDetType.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetType.h"
-#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
-//#include "Geometry/CommonDetUnit/interface/GeomDetType.h"
-//#include "DataFormats/TrackerRecHit2D/interface/SiStripRecHit2D.h"
 
 
 //
@@ -84,13 +78,10 @@ void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::
   iSetup.get< TrackerTopologyRcd >().get(tTopoHandle);
   tTopo = tTopoHandle.product();
   
-//   edm::ESHandle< TrackerGeometry > tGeometryHandle;
-//   const TrackerGeometry* theTrackerGeometry;
-//   iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
-//   theTrackerGeometry = tGeometryHandle.product();
-  edm::ESHandle< TrackerGeometry > geomHandle;
-  iSetup.get< TrackerDigiGeometryRecord >().get(geomHandle);
-  const TrackerGeometry* tkGeom = &(*geomHandle);
+  edm::ESHandle< TrackerGeometry > tGeometryHandle;
+  const TrackerGeometry* theTrackerGeometry;
+  iSetup.get< TrackerDigiGeometryRecord >().get( tGeometryHandle );
+  theTrackerGeometry = tGeometryHandle.product();
   
   
   /// Loop over the input Clusters
@@ -105,36 +96,18 @@ void OuterTrackerMonitorTTCluster::analyze(const edm::Event& iEvent, const edm::
       //Make reference cluster
       edm::Ref< edmNew::DetSetVector< TTCluster< Ref_Phase2TrackerDigi_ > >, TTCluster< Ref_Phase2TrackerDigi_ > > tempCluRef = edmNew::makeRefTo( Phase2TrackerDigiTTClusterHandle, contentIter );
       
-      DetId detIdClu = tkGeom->idToDet( tempCluRef->getDetId() )->geographicalId();
-      //DetId detIdClu(tempCluRef->getDetId());
+      DetId detIdClu = theTrackerGeometry->idToDet( tempCluRef->getDetId() )->geographicalId();
       unsigned int memberClu = tempCluRef->getStackMember();
       unsigned int widClu = tempCluRef->findWidth();
       
-      
       MeasurementPoint mp = tempCluRef->findAverageLocalCoordinates();
-      //const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu.rawId());
-      const GeomDet* theDetUnit = tkGeom->idToDet(detIdClu);
-      //LocalPoint localPos = tempCluRef->findAverageLocalPosition(theDetUnit);
-      LocalPoint localPos( mp.x(), mp.y() );  //// NO! Not Carthesian!
-      //Global3DPoint posClu = (theDetUnit)->surface().toGlobal( (theDetUnit)->topology().localPosition(mp) );
-      Global3DPoint posClu = (theDetUnit)->surface().toGlobal( localPos );
+      const GeomDet* theGeomDet = theTrackerGeometry->idToDet(detIdClu);
+      Global3DPoint posClu = theGeomDet->surface().toGlobal( theGeomDet->topology().localPosition(mp) );
       
-      //GlobalPoint posClu  = theStacXXXkedGeometry->findAverageGlobalPosition( &(*tempCluRef) );
-      
-      //GlobalPoint posClu =  tempCluRef->findAverageGlobalPosition(theDetUnit);
       double eta = posClu.eta();
-      
-      
-      // Replacement of memberClu? Does not work!
-      //bool isLowerDet = tTopo->isLower(detIdClu);
-      //bool isUpperDet = tTopo->isUpper(detIdClu);
-      //const GeomDetUnit* detInner = theTrackerGeometry->idToDetUnit( tTopo->Lower(detIdClu) ); // not used atm
-      //const GeomDetUnit* detOuter = theTrackerGeometry->idToDetUnit( tTopo->Upper(detIdClu) );
-      
       
       Cluster_W->Fill(widClu, memberClu);
       Cluster_Eta->Fill(eta);
-      
       Cluster_RZ->Fill( posClu.z(), posClu.perp() );
       
       if ( detIdClu.subdetId() == static_cast<int>(StripSubdetector::TOB) )  // Phase 2 Outer Tracker Barrel

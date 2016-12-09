@@ -29,15 +29,6 @@
 #include "TNamed.h"
 
 // user include files
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
-
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-
-
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -50,14 +41,13 @@
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 #include "DataFormats/L1TrackTrigger/interface/TTStub.h"
-#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/CommonTopologies/interface/PixelTopology.h"
 
-#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
-#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
-#include "Geometry/TrackerNumberingBuilder/interface/GeometricDet.h"
+#include "Geometry/CommonDetUnit/interface/GeomDet.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 
 
 //
@@ -117,20 +107,23 @@ OuterTrackerMonitorTTStub::analyze(const edm::Event& iEvent, const edm::EventSet
       /// Make reference stub
       edm::Ref< edmNew::DetSetVector< TTStub< Ref_Phase2TrackerDigi_ > >, TTStub< Ref_Phase2TrackerDigi_ > > tempStubRef = edmNew::makeRefTo( Phase2TrackerDigiTTStubHandle, contentIter );
       
-      // Get det ID (place of the stub)
-      DetId detIdStub = theTrackerGeometry->idToDet( tempStubRef->getDetId() )->geographicalId();
+      /// Get det ID (place of the stub)
+      //  tempStubRef->getDetId() gives the stackDetId, not rawId
+      DetId detIdStub = theTrackerGeometry->idToDet( (tempStubRef->getClusterRef(0))->getDetId() )->geographicalId();
       
-      // Get trigger displacement/offset
+      /// Get trigger displacement/offset
       double displStub = tempStubRef->getTriggerDisplacement();
       double offsetStub = tempStubRef->getTriggerOffset();
       
-      // Define position stub 
-      GlobalVector posStub = GlobalVector((theTrackerGeometry->idToDet(detIdStub))->position().basicVector());
+      /// Define position stub by position inner cluster
+      MeasurementPoint mp = (tempStubRef->getClusterRef(0))->findAverageLocalCoordinates();
+      const GeomDet* theGeomDet = theTrackerGeometry->idToDet(detIdStub);
+      Global3DPoint posStub = theGeomDet->surface().toGlobal( theGeomDet->topology().localPosition(mp) );
+      
       double eta = posStub.eta();
-
-
-      Stub_RZ->Fill( posStub.z(), posStub.perp() );
+      
       Stub_Eta->Fill(eta);
+      Stub_RZ->Fill( posStub.z(), posStub.perp() );
 
       if ( detIdStub.subdetId() == static_cast<int>(StripSubdetector::TOB) )  // Phase 2 Outer Tracker Barrel
       {
