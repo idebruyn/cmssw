@@ -79,7 +79,8 @@ upgradeSteps=[
     'HARVESTFull_trackingOnlyPU',
     'HARVESTFullGlobal',
     'HARVESTFullGlobalPU',
-    'ALCAFull'
+    'ALCAFull',
+    'DigiFullTrigger'
 ]
 
 upgradeProperties = {}
@@ -132,35 +133,35 @@ upgradeProperties[2023] = {
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
     },
     '2023D10' : {
         'Geom' : 'Extended2023D10',
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal','HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFullTrigger','RecoFullGlobal','HARVESTFullGlobal'],
     },
     '2023D4' : {
         'Geom' : 'Extended2023D4',
         'HLTmenu': '@fake',
         'GT' : 'auto:phase2_realistic',
         'Era' : 'Phase2C2',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal', 'HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFullTrigger','RecoFullGlobal', 'HARVESTFullGlobal'],
     },
     '2023D8' : {
         'Geom' : 'Extended2023D8',
         'HLTmenu': '@fake',
         'GT' : 'auto:phase2_realistic',
         'Era' : 'Phase2C2_timing_layer',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal', 'HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFullTrigger','RecoFullGlobal', 'HARVESTFullGlobal'],
     },
     '2023D9' : {
         'Geom' : 'Extended2023D9',
         'GT' : 'auto:phase2_realistic',
         'HLTmenu': '@fake',
         'Era' : 'Phase2C1',
-        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFull','RecoFullGlobal', 'HARVESTFullGlobal'],
+        'ScenToRun' : ['GenSimHLBeamSpotFull','DigiFullTrigger','RecoFullGlobal', 'HARVESTFullGlobal'],
     }
 
 }
